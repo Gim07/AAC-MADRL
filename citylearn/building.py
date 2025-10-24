@@ -8,7 +8,7 @@ from citylearn.base import Environment, EpisodeTracker
 from citylearn.data import CarbonIntensity, EnergySimulation, Pricing, TOLERANCE, Weather, ZERO_DIVISION_PLACEHOLDER
 from citylearn.dynamics import Dynamics, LSTMDynamics
 from citylearn.electric_vehicle_charger import Charger
-from citylearn.energy_model import Battery, ElectricDevice, ElectricHeater, HeatPump, PV, StorageTank
+from citylearn.energy_model import Battery, ElectricDevice, ElectricHeater, HeatPump, PV, StorageTank, FuelCombustionDevice, GasBoiler
 from citylearn.occupant import LogisticRegressionOccupant, Occupant
 from citylearn.power_outage import PowerOutage
 from citylearn.preprocessing import Normalize, PeriodicNormalization
@@ -80,17 +80,17 @@ class Building(Environment):
     """
 
     def __init__(
-        self, energy_simulation: EnergySimulation, weather: Weather, observation_metadata: Mapping[str, bool],
-        action_metadata: Mapping[str, bool], episode_tracker: EpisodeTracker,
-        carbon_intensity: CarbonIntensity = None,
-        pricing: Pricing = None, dhw_storage: StorageTank = None, cooling_storage: StorageTank = None,
-        heating_storage: StorageTank = None, electrical_storage: Battery = None,
-        dhw_device: Union[HeatPump, ElectricHeater] = None, cooling_device: HeatPump = None,
-        heating_device: Union[HeatPump, ElectricHeater] = None, pv: PV = None, name: str = None,
-        maximum_temperature_delta: float = None, observation_space_limit_delta: float = None,
-        demand_observation_limit_factor: float = None, simulate_power_outage: bool = None,
-        stochastic_power_outage: bool = None, stochastic_power_outage_model: PowerOutage = None,
-        electric_vehicle_chargers: List[Charger] = None, **kwargs: Any
+            self, energy_simulation: EnergySimulation, weather: Weather, observation_metadata: Mapping[str, bool],
+            action_metadata: Mapping[str, bool], episode_tracker: EpisodeTracker,
+            carbon_intensity: CarbonIntensity = None,
+            pricing: Pricing = None, dhw_storage: StorageTank = None, cooling_storage: StorageTank = None,
+            heating_storage: StorageTank = None, electrical_storage: Battery = None,
+            dhw_device: Union[HeatPump, ElectricHeater, GasBoiler] = None, cooling_device: HeatPump = None,
+            heating_device: Union[HeatPump, ElectricHeater, GasBoiler] = None, pv: PV = None, name: str = None,
+            maximum_temperature_delta: float = None, observation_space_limit_delta: float = None,
+            demand_observation_limit_factor: float = None, simulate_power_outage: bool = None,
+            stochastic_power_outage: bool = None, stochastic_power_outage_model: PowerOutage = None,
+            electric_vehicle_chargers: List[Charger] = None, **kwargs: Any
     ):
         self.name = name
         self.dhw_storage = dhw_storage
@@ -186,8 +186,8 @@ class Building(Environment):
         return self.__electrical_storage
 
     @property
-    def dhw_device(self) -> Union[HeatPump, ElectricHeater]:
-        """Electric device for meeting hot domestic hot water demand and charging `dhw_storage`."""
+    def dhw_device(self) -> Union[HeatPump, ElectricHeater, GasBoiler]:
+        """Device for meeting hot domestic hot water demand and charging `dhw_storage`."""
 
         return self.__dhw_device
 
@@ -198,7 +198,7 @@ class Building(Environment):
         return self.__cooling_device
 
     @property
-    def heating_device(self) -> Union[HeatPump, ElectricHeater]:
+    def heating_device(self) -> Union[HeatPump, ElectricHeater, GasBoiler]:
         """Electric device for meeting space heating demand and charging `heating_storage`."""
 
         return self.__heating_device
@@ -357,6 +357,40 @@ class Building(Environment):
         """`net_electricity_consumption` cost time series, in [$]."""
 
         return self.__net_electricity_consumption_cost[:self.time_step + 1]
+
+    @property
+    def net_fuel_consumption_emission(self) -> np.ndarray:
+        """Carbon dioxide emmission from `net_fuel_consumption` time series, in [kg_co2]."""
+
+        return self.__net_fuel_consumption_emission[:self.time_step + 1]
+
+    @property
+    def net_fuel_consumption_cost(self) -> np.ndarray:
+        """`net_fuel_consumption` cost time series, in [$]."""
+
+        return self.__net_fuel_consumption_cost[:self.time_step + 1]
+
+    @property
+    def net_fuel_consumption(self) -> np.ndarray:
+        """Net fuel consumption time series, in [kWh]."""
+
+        return self.__net_fuel_consumption[:self.time_step + 1]
+
+    @property
+    def heating_fuel_consumption(self) -> np.ndarray:
+        """`heating_device` (if GasBoiler) net fuel consumption time series, in [kWh]."""
+        if isinstance(self.heating_device, GasBoiler):
+            return self.heating_device.fuel_consumption[:self.time_step + 1]
+        else:
+            return np.zeros(self.time_step + 1, dtype='float32')
+
+    @property
+    def dhw_fuel_consumption(self) -> np.ndarray:
+        """`dhw_device` (if GasBoiler) net fuel consumption time series, in [kWh]."""
+        if isinstance(self.dhw_device, GasBoiler):
+            return self.dhw_device.fuel_consumption[:self.time_step + 1]
+        else:
+            return np.zeros(self.time_step + 1, dtype='float32')
 
     @property
     def net_electricity_consumption(self) -> np.ndarray:
@@ -700,7 +734,7 @@ class Building(Environment):
         self.__electrical_storage = Battery(0.0, 0.0) if electrical_storage is None else electrical_storage
 
     @dhw_device.setter
-    def dhw_device(self, dhw_device: Union[HeatPump, ElectricHeater]):
+    def dhw_device(self, dhw_device: Union[HeatPump, ElectricHeater, GasBoiler]):
         self.__dhw_device = ElectricHeater(0.0) if dhw_device is None else dhw_device
 
     @cooling_device.setter
@@ -708,7 +742,7 @@ class Building(Environment):
         self.__cooling_device = HeatPump(0.0) if cooling_device is None else cooling_device
 
     @heating_device.setter
-    def heating_device(self, heating_device: Union[HeatPump, ElectricHeater]):
+    def heating_device(self, heating_device: Union[HeatPump, ElectricHeater, GasBoiler]):
         self.__heating_device = HeatPump(0.0) if heating_device is None else heating_device
 
     @pv.setter
@@ -1004,6 +1038,9 @@ class Building(Environment):
             'comfort_band': self.energy_simulation.comfort_band[self.time_step],
             'occupant_count': self.energy_simulation.occupant_count[self.time_step],
             'power_outage': self.__power_outage_signal[self.time_step],
+            'net_fuel_consumption': self.net_fuel_consumption[self.time_step],
+            'heating_fuel_consumption': self.heating_fuel_consumption[self.time_step],
+            'dhw_fuel_consumption': self.dhw_fuel_consumption[self.time_step],
         }
     
     @staticmethod
@@ -1208,15 +1245,33 @@ class Building(Environment):
         temperature = self.weather.outdoor_dry_bulb_temperature[self.time_step]
         storage_output = self.energy_from_heating_storage[self.time_step]
         max_electric_power = self.downward_electrical_flexibility
-        max_device_output = self.heating_device.get_max_output_power(temperature, heating=True, max_electric_power=max_electric_power) \
-            if isinstance(self.heating_device, HeatPump) else self.heating_device.get_max_output_power(max_electric_power=max_electric_power)
+
+        # MODIFICA BLOCCO LOGICA PER max_device_output
+        if isinstance(self.heating_device, HeatPump):
+            max_device_output = self.heating_device.get_max_output_power(temperature, heating=True,
+                                                                         max_electric_power=max_electric_power)
+        elif isinstance(self.heating_device, ElectricHeater):
+            max_device_output = self.heating_device.get_max_output_power(max_electric_power=max_electric_power)
+        elif isinstance(self.heating_device, GasBoiler):
+            # Il gas non è (ancora) limitato dalla flessibilità elettrica
+            max_device_output = self.heating_device.get_max_output_power(max_fuel_power=None)
+        # FINE MODIFICA
+
         self.___demand_limit_check('heating', demand, max_device_output)
         device_output = min(demand - storage_output, max_device_output)
         self.__energy_from_heating_device[self.time_step] = device_output
-        electricity_consumption = self.heating_device.get_input_power(device_output, temperature, heating=True) \
-            if isinstance(self.heating_device, HeatPump) else self.heating_device.get_input_power(device_output)
-        self.___electricity_consumption_polarity_check('heating', device_output, electricity_consumption)
-        self.heating_device.update_electricity_consumption(max(0.0, electricity_consumption))
+        # MODIFICA BLOCCO LOGICA PER CONSUMPTION
+        if isinstance(self.heating_device, (HeatPump, ElectricHeater)):
+            electricity_consumption = self.heating_device.get_input_power(device_output, temperature, heating=True) \
+                if isinstance(self.heating_device, HeatPump) else self.heating_device.get_input_power(device_output)
+            self.___electricity_consumption_polarity_check('heating', device_output, electricity_consumption)
+            self.heating_device.update_electricity_consumption(max(0.0, electricity_consumption))
+        elif isinstance(self.heating_device, GasBoiler):
+            fuel_consumption = self.heating_device.get_input_power(device_output)
+            # Aggiungi un controllo di polarità del carburante se necessario, per ora assumiamo > 0
+            self.heating_device.update_fuel_consumption(max(0.0, fuel_consumption))
+        # FINE MODIFICA
+
 
     def update_heating_storage(self, action: float):
         r"""Charge/discharge `heating_storage` for current time step.
@@ -1232,8 +1287,16 @@ class Building(Environment):
 
         if energy > 0.0:
             max_electric_power = self.downward_electrical_flexibility
-            max_output = self.heating_device.get_max_output_power(temperature, heating=True, max_electric_power=max_electric_power) \
-                if isinstance(self.heating_device, HeatPump) else self.heating_device.get_max_output_power(max_electric_power=max_electric_power)
+            # MODIFICA BLOCCO LOGICA PER max_output
+            if isinstance(self.heating_device, HeatPump):
+                max_output = self.heating_device.get_max_output_power(temperature, heating=True,
+                                                                      max_electric_power=max_electric_power)
+            elif isinstance(self.heating_device, ElectricHeater):
+                max_output = self.heating_device.get_max_output_power(max_electric_power=max_electric_power)
+            elif isinstance(self.heating_device, GasBoiler):
+                max_output = self.heating_device.get_max_output_power(max_fuel_power=None)
+            # FINE MODIFICA
+
             energy = min(max_output, energy)
 
         else:
@@ -1242,9 +1305,16 @@ class Building(Environment):
 
         self.heating_storage.charge(energy)
         charged_energy = max(self.heating_storage.energy_balance[self.time_step], 0.0)
-        electricity_consumption = self.heating_device.get_input_power(charged_energy, temperature, heating=True) \
-            if isinstance(self.heating_device, HeatPump) else self.heating_device.get_input_power(charged_energy)
-        self.heating_device.update_electricity_consumption(electricity_consumption)
+
+        # MODIFICA BLOCCO LOGICA PER CONSUMPTION
+        if isinstance(self.heating_device, (HeatPump, ElectricHeater)):
+            electricity_consumption = self.heating_device.get_input_power(charged_energy, temperature, heating=True) \
+                if isinstance(self.heating_device, HeatPump) else self.heating_device.get_input_power(charged_energy)
+            self.heating_device.update_electricity_consumption(electricity_consumption)
+        elif isinstance(self.heating_device, GasBoiler):
+            fuel_consumption = self.heating_device.get_input_power(charged_energy)
+            self.heating_device.update_fuel_consumption(fuel_consumption)
+        # FINE MODIFICA
 
     def update_energy_from_dhw_device(self):
         r"""Update dhw device electricity consumption and energy tranfer for current time step's dhw demand."""
@@ -1253,13 +1323,29 @@ class Building(Environment):
         temperature = self.weather.outdoor_dry_bulb_temperature[self.time_step]
         storage_output = self.energy_from_dhw_storage[self.time_step]
         max_electric_power = self.downward_electrical_flexibility
-        max_device_output = self.dhw_device.get_max_output_power(temperature, heating=True, max_electric_power=max_electric_power) \
-            if isinstance(self.dhw_device, HeatPump) else self.dhw_device.get_max_output_power(max_electric_power=max_electric_power)
+        # MODIFICA BLOCCO LOGICA PER max_device_output
+        if isinstance(self.dhw_device, HeatPump):
+            max_device_output = self.dhw_device.get_max_output_power(temperature, heating=True,
+                                                                     max_electric_power=max_electric_power)
+        elif isinstance(self.dhw_device, ElectricHeater):
+            max_device_output = self.dhw_device.get_max_output_power(max_electric_power=max_electric_power)
+        elif isinstance(self.dhw_device, GasBoiler):
+            max_device_output = self.dhw_device.get_max_output_power(max_fuel_power=None)
+        # FINE MODIFICA
+
         self.___demand_limit_check('dhw', demand, max_device_output)
         device_output = min(demand - storage_output, max_device_output)
         self.__energy_from_dhw_device[self.time_step] = device_output
-        electricity_consumption = self.dhw_device.get_input_power(device_output, temperature, heating=True) \
-            if isinstance(self.dhw_device, HeatPump) else self.dhw_device.get_input_power(device_output)
+        # MODIFICA BLOCCO LOGICA PER CONSUMPTION
+        if isinstance(self.dhw_device, (HeatPump, ElectricHeater)):
+            electricity_consumption = self.dhw_device.get_input_power(device_output, temperature, heating=True) \
+                if isinstance(self.dhw_device, HeatPump) else self.dhw_device.get_input_power(device_output)
+            self.___electricity_consumption_polarity_check('dhw', device_output, electricity_consumption)
+            self.dhw_device.update_electricity_consumption(max(0.0, electricity_consumption))
+        elif isinstance(self.dhw_device, GasBoiler):
+            fuel_consumption = self.dhw_device.get_input_power(device_output)
+            self.dhw_device.update_fuel_consumption(max(0.0, fuel_consumption))
+        # FINE MODIFICA
         self.___electricity_consumption_polarity_check('dhw', device_output, electricity_consumption)
         self.dhw_device.update_electricity_consumption(max(0.0, electricity_consumption))
 
@@ -1277,8 +1363,15 @@ class Building(Environment):
 
         if energy > 0.0:
             max_electric_power = self.downward_electrical_flexibility
-            max_output = self.dhw_device.get_max_output_power(temperature, heating=True, max_electric_power=max_electric_power) \
-                if isinstance(self.dhw_device, HeatPump) else self.dhw_device.get_max_output_power(max_electric_power=max_electric_power)
+            # MODIFICA BLOCCO LOGICA PER max_output
+            if isinstance(self.dhw_device, HeatPump):
+                max_output = self.dhw_device.get_max_output_power(temperature, heating=True,
+                                                                  max_electric_power=max_electric_power)
+            elif isinstance(self.dhw_device, ElectricHeater):
+                max_output = self.dhw_device.get_max_output_power(max_electric_power=max_electric_power)
+            elif isinstance(self.dhw_device, GasBoiler):
+                max_output = self.dhw_device.get_max_output_power(max_fuel_power=None)
+            # FINE MODIFICA
             energy = min(max_output, energy)
 
         else:
@@ -1287,9 +1380,15 @@ class Building(Environment):
 
         self.dhw_storage.charge(energy)
         charged_energy = max(self.dhw_storage.energy_balance[self.time_step], 0.0)
-        electricity_consumption = self.dhw_device.get_input_power(charged_energy, temperature, heating=True) \
-            if isinstance(self.dhw_device, HeatPump) else self.dhw_device.get_input_power(charged_energy)
-        self.dhw_device.update_electricity_consumption(electricity_consumption)
+        # MODIFICA BLOCCO LOGICA PER CONSUMPTION
+        if isinstance(self.dhw_device, (HeatPump, ElectricHeater)):
+            electricity_consumption = self.dhw_device.get_input_power(charged_energy, temperature, heating=True) \
+                if isinstance(self.dhw_device, HeatPump) else self.dhw_device.get_input_power(charged_energy)
+            self.dhw_device.update_electricity_consumption(electricity_consumption)
+        elif isinstance(self.dhw_device, GasBoiler):
+            fuel_consumption = self.dhw_device.get_input_power(charged_energy)
+            self.dhw_device.update_fuel_consumption(fuel_consumption)
+        # FINE MODIFICA
 
     def update_non_shiftable_load(self):
         r"""Update non shiftable loads electricity consumption for current time step non shiftable load."""
@@ -1520,8 +1619,16 @@ class Building(Environment):
                     start_time_step=self.episode_tracker.simulation_start_time_step,
                     end_time_step=self.episode_tracker.simulation_end_time_step
                 )
-                electricity_consumption = self.heating_device.get_input_power(demand, data['outdoor_dry_bulb_temperature'], True) \
-                    if isinstance(self.heating_device, HeatPump) else self.heating_device.get_input_power(demand)
+                # MODIFICA BLOCCO
+                if isinstance(self.heating_device, HeatPump):
+                    electricity_consumption = self.heating_device.get_input_power(demand,
+                                                                                  data['outdoor_dry_bulb_temperature'],
+                                                                                  True)
+                elif isinstance(self.heating_device, ElectricHeater):
+                    electricity_consumption = self.heating_device.get_input_power(demand)
+                else:  # È GasBoiler, quindi il consumo ELETTRICO è zero
+                    electricity_consumption = np.zeros_like(demand)
+                # FINE MODIFICA
                 low_limit[key] = -max(electricity_consumption)
                 high_limit[key] = self.heating_device.nominal_power
 
@@ -1531,14 +1638,48 @@ class Building(Environment):
                     start_time_step=self.episode_tracker.simulation_start_time_step,
                     end_time_step=self.episode_tracker.simulation_end_time_step
                 )
-                electricity_consumption = self.dhw_device.get_input_power(demand, data['outdoor_dry_bulb_temperature'], True) \
-                    if isinstance(self.dhw_device, HeatPump) else self.dhw_device.get_input_power(demand)
+                # MODIFICA BLOCCO
+                if isinstance(self.dhw_device, HeatPump):
+                    electricity_consumption = self.dhw_device.get_input_power(demand,
+                                                                              data['outdoor_dry_bulb_temperature'],
+                                                                              True)
+                elif isinstance(self.dhw_device, ElectricHeater):
+                    electricity_consumption = self.dhw_device.get_input_power(demand)
+                else:  # È GasBoiler, quindi il consumo ELETTRICO è zero
+                    electricity_consumption = np.zeros_like(demand)
+                # FINE MODIFICA
+
                 low_limit[key] = -max(electricity_consumption)
                 high_limit[key] = self.dhw_device.nominal_power
 
             elif key == 'electrical_storage_electricity_consumption':
                 low_limit[key] = -self.electrical_storage.nominal_power
                 high_limit[key] = self.electrical_storage.nominal_power
+
+                # AGGIUNGI QUESTI NUOVI BLOCCHI
+            elif key == 'net_fuel_consumption':
+                low_limit[key] = 0.0
+                high_limit_heating = self.heating_device.nominal_power if isinstance(self.heating_device,
+                                                                                     GasBoiler) else 0.0
+                high_limit_dhw = self.dhw_device.nominal_power if isinstance(self.dhw_device, GasBoiler) else 0.0
+                high_limit[key] = high_limit_heating + high_limit_dhw
+
+            elif key == 'heating_fuel_consumption':
+                if isinstance(self.heating_device, GasBoiler):
+                    low_limit[key] = 0.0
+                    high_limit[key] = self.heating_device.nominal_power
+                else:
+                    low_limit[key] = 0.0
+                    high_limit[key] = 0.0
+
+            elif key == 'dhw_fuel_consumption':
+                if isinstance(self.dhw_device, GasBoiler):
+                    low_limit[key] = 0.0
+                    high_limit[key] = self.dhw_device.nominal_power
+                else:
+                    low_limit[key] = 0.0
+                    high_limit[key] = 0.0
+            # FINE NUOVI BLOCCHI
 
             elif key == 'power_outage':
                 low_limit[key] = 0.0
@@ -1909,17 +2050,26 @@ class Building(Environment):
         )
         cooling_electricity_consumption = self.cooling_device.get_input_power(cooling_demand, outdoor_dry_bulb_temperature, heating=False)
 
+        # MODIFICA BLOCCO
         if isinstance(self.heating_device, HeatPump):
-            heating_electricity_consumption = self.heating_device.get_input_power(heating_demand, outdoor_dry_bulb_temperature, heating=True)
-
-        else:
+            heating_electricity_consumption = self.heating_device.get_input_power(heating_demand,
+                                                                                  outdoor_dry_bulb_temperature,
+                                                                                  heating=True)
+        elif isinstance(self.heating_device, ElectricHeater):
             heating_electricity_consumption = self.heating_device.get_input_power(heating_demand)
+        else:  # È GasBoiler
+            heating_electricity_consumption = np.zeros_like(heating_demand)
+        # FINE MODIFICA
 
+        # MODIFICA BLOCCO
         if isinstance(self.dhw_device, HeatPump):
-            dhw_electricity_consumption = self.dhw_device.get_input_power(dhw_demand, outdoor_dry_bulb_temperature, heating=True)
-
-        else:
+            dhw_electricity_consumption = self.dhw_device.get_input_power(dhw_demand, outdoor_dry_bulb_temperature,
+                                                                          heating=True)
+        elif isinstance(self.dhw_device, ElectricHeater):
             dhw_electricity_consumption = self.dhw_device.get_input_power(dhw_demand)
+        else:  # È GasBoiler
+            dhw_electricity_consumption = np.zeros_like(dhw_demand)
+        # FINE MODIFICA
 
         electricity_consumption = cooling_electricity_consumption \
             + heating_electricity_consumption \
@@ -1980,6 +2130,11 @@ class Building(Environment):
         self.__net_electricity_consumption = np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
         self.__net_electricity_consumption_emission = np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
         self.__net_electricity_consumption_cost = np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
+        # AGGIUNGI QUESTE RIGHE
+        self.__net_fuel_consumption = np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
+        self.__net_fuel_consumption_emission = np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
+        self.__net_fuel_consumption_cost = np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
+        # FINE AGGIUNTA
         self.__power_outage_signal = self.reset_power_outage_signal()
         self.__chargers_electricity_consumption = np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
 
@@ -2092,17 +2247,35 @@ class Building(Environment):
         net_electricity_consumption = 0.0
 
         if not self.power_outage:
+            # Calcoliamo solo i dispositivi ELETTRICI qui
             net_electricity_consumption = self.cooling_device.electricity_consumption[self.time_step] \
-                                          + self.heating_device.electricity_consumption[self.time_step] \
-                                            + self.dhw_device.electricity_consumption[self.time_step] \
-                                                + self.non_shiftable_load_device.electricity_consumption[self.time_step] \
-                                                    + self.electrical_storage.electricity_consumption[self.time_step] \
-                                                        + self.solar_generation[self.time_step] \
-                                                            + self.__chargers_electricity_consumption[self.time_step]
+                                          + self.non_shiftable_load_device.electricity_consumption[self.time_step] \
+                                          + self.electrical_storage.electricity_consumption[self.time_step] \
+                                          + self.solar_generation[self.time_step] \
+                                          + self.__chargers_electricity_consumption[self.time_step]
+
+            # Aggiungi i dispositivi di riscaldamento SOLO se sono elettrici
+            if isinstance(self.heating_device, (HeatPump, ElectricHeater)):
+                net_electricity_consumption += self.heating_device.electricity_consumption[self.time_step]
+                net_electricity_consumption += self.dhw_device.electricity_consumption[self.time_step]
+
         else:
             pass
+        # FINE MODIFICA
 
         self.__net_electricity_consumption[self.time_step] = net_electricity_consumption
+
+        # AGGIUNGI BLOCCO PER NET FUEL CONSUMPTION
+        net_fuel_consumption = 0.0
+
+        if isinstance(self.heating_device, GasBoiler):
+            net_fuel_consumption += self.heating_device.fuel_consumption[self.time_step]
+
+        if isinstance(self.dhw_device, GasBoiler):
+            net_fuel_consumption += self.dhw_device.fuel_consumption[self.time_step]
+
+        self.__net_fuel_consumption[self.time_step] = net_fuel_consumption
+        # FINE AGGIUNTA
 
         # net electriciy consumption cost
         self.__net_electricity_consumption_cost[self.time_step] = net_electricity_consumption*self.pricing.electricity_pricing[self.time_step]
@@ -2110,6 +2283,21 @@ class Building(Environment):
         # net electriciy consumption emission
         self.__net_electricity_consumption_emission[self.time_step] = max(0.0, net_electricity_consumption*self.carbon_intensity.carbon_intensity[self.time_step])
 
+        # AGGIUNGI BLOCCO PER COSTO ED EMISSIONI CARBURANTE
+        # Nota: questo presume che aggiungerai 'fuel_pricing' a Pricing e 'fuel_carbon_intensity' a CarbonIntensity
+        try:
+            fuel_price = self.pricing.fuel_pricing[self.time_step]
+        except AttributeError:
+            fuel_price = 0.0  # Valore di default se non implementato
+
+        try:
+            fuel_carbon = self.carbon_intensity.fuel_carbon_intensity[self.time_step]
+        except AttributeError:
+            fuel_carbon = 0.0  # Valore di default se non implementato
+
+        self.__net_fuel_consumption_cost[self.time_step] = net_fuel_consumption * fuel_price
+        self.__net_fuel_consumption_emission[self.time_step] = max(0.0, net_fuel_consumption * fuel_carbon)
+        # FINE AGGIUNTA
 
 class DynamicsBuilding(Building):
     r"""Base class for temperature dynamic building.

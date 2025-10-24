@@ -596,6 +596,24 @@ class CityLearnEnv(Environment, Env):
         return self.__net_electricity_consumption
 
     @property
+    def net_fuel_consumption_emission(self) -> List[float]:
+        """Summed `Building.net_fuel_consumption_emission` time series, in [kg_co2]."""
+
+        return self.__net_fuel_consumption_emission
+
+    @property
+    def net_fuel_consumption_cost(self) -> List[float]:
+        """Summed `Building.net_fuel_consumption_cost` time series, in [$]."""
+
+        return self.__net_fuel_consumption_cost
+
+    @property
+    def net_fuel_consumption(self) -> List[float]:
+        """Summed `Building.net_fuel_consumption` time series, in [kWh]."""
+
+        return self.__net_fuel_consumption
+
+    @property
     def cooling_electricity_consumption(self) -> np.ndarray:
         """Summed `Building.cooling_electricity_consumption` time series, in [kWh]."""
 
@@ -1107,6 +1125,36 @@ class CityLearnEnv(Environment, Env):
         control_condition = EvaluationCondition.WITH_STORAGE_AND_PARTIAL_LOAD_AND_PV if control_condition is None else control_condition
         baseline_condition = EvaluationCondition.WITHOUT_STORAGE_AND_PARTIAL_LOAD_BUT_WITH_PV if baseline_condition is None else baseline_condition
 
+        # Calcola i baseline per il carburante (assumendo che non ci sia controllo sul carburante nel baseline)
+        # Nota: questo presuppone che il consumo di gas nel baseline sia semplicemente quello necessario
+        # a soddisfare la domanda senza storage. Potrebbe essere necessario un calcolo più sofisticato
+        # se il baseline dovesse includere qualche forma di controllo del gas.
+        # Per ora, usiamo il consumo controllato anche come baseline per il gas,
+        # il che significa che il rapporto sarà 1.0 (nessun miglioramento/peggioramento relativo).
+        # IDEALMENTE: si dovrebbe calcolare un baseline specifico per il gas.
+        baseline_fuel_consumption = self.net_fuel_consumption
+        baseline_fuel_cost = self.net_fuel_consumption_cost
+        baseline_fuel_emission = self.net_fuel_consumption_emission
+
+        district_level_fuel = pd.DataFrame([{
+            'cost_function': 'fuel_consumption_total',
+            # Normalizza rispetto al baseline (attualmente sé stesso)
+            'value': CostFunction.fuel_consumption(self.net_fuel_consumption)[-1] /
+                     CostFunction.fuel_consumption(baseline_fuel_consumption)[-1] if np.sum(
+                baseline_fuel_consumption) > 0 else None,
+        }, {
+            'cost_function': 'fuel_cost_total',
+            # Normalizza rispetto al baseline (attualmente sé stesso)
+            'value': CostFunction.cost(self.net_fuel_consumption_cost)[-1] /
+                     CostFunction.cost(baseline_fuel_cost)[-1] if np.sum(baseline_fuel_cost) > 0 else None,
+        }, {
+            'cost_function': 'fuel_carbon_emissions_total',
+            # Normalizza rispetto al baseline (attualmente sé stesso)
+            'value': CostFunction.carbon_emissions(self.net_fuel_consumption_emission)[-1] /
+                     CostFunction.carbon_emissions(baseline_fuel_emission)[-1] if np.sum(
+                baseline_fuel_emission) > 0 else None,
+        }])
+
         district_level = pd.DataFrame([{
             'cost_function': 'ramping_average',
             'value': CostFunction.ramping(get_net_electricity_consumption(self, control_condition))[-1]/\
@@ -1129,11 +1177,29 @@ class CityLearnEnv(Environment, Env):
                 CostFunction.peak(get_net_electricity_consumption(self, baseline_condition), window=self.time_steps)[-1],
         }])
 
-        district_level = pd.concat([district_level, building_level], ignore_index=True, sort=False)
-        district_level = district_level.groupby(['cost_function'])[['value']].mean().reset_index()
+        district_level = pd.concat([district_level, district_level_fuel], ignore_index=True, sort=False)
+
+        # district_level = pd.concat([district_level, building_level], ignore_index=True, sort=False)
+        # district_level = district_level.groupby(['cost_function'])[['value']].mean().reset_index()
+        # district_level['name'] = 'District'
+        # district_level['level'] = 'district'
+        # cost_functions = pd.concat([district_level, building_level], ignore_index=True, sort=False)
+
+        # Ricalcola la media aggregata includendo le nuove metriche
+        district_level_aggregated = district_level.groupby(['cost_function'])[['value']].mean().reset_index()
+        # Mantiene le metriche specifiche del carburante che non dovrebbero essere mediate con quelle elettriche
+        fuel_metrics = district_level[district_level['cost_function'].str.startswith('fuel_')]
+        # Rimuove le metriche del carburante prima di unire con quelle mediate a livello di edificio
+        district_level = district_level[~district_level['cost_function'].str.startswith('fuel_')]
+        # Unisce le metriche mediate e quelle specifiche del carburante
+        district_level = pd.concat([district_level_aggregated, fuel_metrics], ignore_index=True).drop_duplicates(
+            subset=['cost_function'], keep='first')
+
         district_level['name'] = 'District'
         district_level['level'] = 'district'
         cost_functions = pd.concat([district_level, building_level], ignore_index=True, sort=False)
+        # Rimuovi eventuali duplicati se 'district_level' conteneva già medie aggregate
+        cost_functions = cost_functions.drop_duplicates(subset=['cost_function', 'name'], keep='first')
 
         return cost_functions
 
@@ -1226,6 +1292,11 @@ class CityLearnEnv(Environment, Env):
         self.__net_electricity_consumption = []
         self.__net_electricity_consumption_cost = []
         self.__net_electricity_consumption_emission = []
+        # AGGIUNGI QUESTE RIGHE
+        self.__net_fuel_consumption = []
+        self.__net_fuel_consumption_cost = []
+        self.__net_fuel_consumption_emission = []
+        # FINE AGGIUNTA
         self.update_variables()
 
         return self.observations, self.get_info()
@@ -1239,6 +1310,19 @@ class CityLearnEnv(Environment, Env):
 
         # net electriciy consumption emission
         self.__net_electricity_consumption_emission.append(sum([b.net_electricity_consumption_emission[self.time_step] for b in self.buildings]))
+
+        # AGGIUNGI QUESTO BLOCCO
+        # net fuel consumption
+        self.__net_fuel_consumption.append(sum([b.net_fuel_consumption[self.time_step] for b in self.buildings]))
+
+        # net fuel consumption cost
+        self.__net_fuel_consumption_cost.append(
+            sum([b.net_fuel_consumption_cost[self.time_step] for b in self.buildings]))
+
+        # net fuel consumption emission
+        self.__net_fuel_consumption_emission.append(
+            sum([b.net_fuel_consumption_emission[self.time_step] for b in self.buildings]))
+        # FINE AGGIUNTA
 
     def load_agent(self, agent: Union[str, 'citylearn.agents.base.Agent'] = None, **kwargs) -> Union[Any, 'citylearn.agents.base.Agent']:
         """Return :class:`Agent` or sub class object as defined by the `schema`.

@@ -979,14 +979,14 @@ class AAC_MADRL(RLC):
                     pass
 
 class AAC_MADRL_RBC(AAC_MADRL):
-    r"""Uses :py:class:`citylearn.agents.rbc.RBC` to select action during exploration before using :py:class:`citylearn.agents.sac.SAC`.
+    r"""Uses :py:class:`citylearn.agents.P_rbc.RBC` to select action during exploration before using :py:class:`citylearn.agents.sac.SAC`.
 
     Parameters
     ----------
     env: CityLearnEnv
         CityLearn environment.
     rbc: RBC
-        :py:class:`citylearn.agents.rbc.RBC` or child class, used to select actions during exploration.
+        :py:class:`citylearn.agents.P_rbc.RBC` or child class, used to select actions during exploration.
     
     Other Parameters
     ----------------
@@ -1000,7 +1000,7 @@ class AAC_MADRL_RBC(AAC_MADRL):
 
     @property
     def rbc(self) -> RBC:
-        """:py:class:`citylearn.agents.rbc.RBC` or child class, used to select actions during exploration."""
+        """:py:class:`citylearn.agents.P_rbc.RBC` or child class, used to select actions during exploration."""
 
         return self.__rbc
     

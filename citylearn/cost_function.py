@@ -156,6 +156,29 @@ class CostFunction:
         return data['zero_net_energy'].tolist()
 
     @staticmethod
+    def fuel_consumption(net_fuel_consumption: List[float]) -> List[float]:
+        r"""Rolling sum of fuel consumption.
+
+        It is the sum of fuel that is consumed.
+
+        Parameters
+        ----------
+        net_fuel_consumption : List[float]
+            Fuel consumption time series (expected to be >= 0).
+
+        Returns
+        -------
+        fuel_consumption : List[float]
+            Fuel consumption cost.
+        """
+        # Assuming fuel consumption is always positive, no need for clip(min=0) like in electricity
+        data = pd.DataFrame({'net_fuel_consumption': np.array(net_fuel_consumption)})
+        # Calculate the rolling sum
+        data['fuel_consumption'] = data['net_fuel_consumption'].rolling(window=data.shape[0], min_periods=1).sum()
+
+        return data['fuel_consumption'].tolist()
+
+    @staticmethod
     def carbon_emissions(carbon_emissions: List[float]) -> List[float]:
         r"""Rolling sum of carbon emissions.
 

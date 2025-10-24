@@ -529,6 +529,7 @@ class Weather(TimeSeriesData):
         self.direct_solar_irradiance_predicted_2 = np.array(direct_solar_irradiance_predicted_2, dtype='float32')
         self.direct_solar_irradiance_predicted_3 = np.array(direct_solar_irradiance_predicted_3, dtype='float32')
 
+
 class Pricing(TimeSeriesData):
     """`Building` `pricing` data class.
 
@@ -542,6 +543,14 @@ class Pricing(TimeSeriesData):
         Electricity pricing `n` hours ahead prediction time series in [$/kWh]. `n` can be any number of hours and is typically 2 or 12 hours in existing datasets.
     electricity_pricing_predicted_3 : np.array
         Electricity pricing `n` hours ahead prediction time series in [$/kWh]. `n` can be any number of hours and is typically 3 or 24 hours in existing datasets.
+    fuel_pricing : np.array, optional
+        Fuel (e.g., gas) pricing time series in [$/kWh].
+    fuel_pricing_predicted_1 : np.array, optional
+        Fuel pricing `n` hours ahead prediction time series in [$/kWh].
+    fuel_pricing_predicted_2 : np.array, optional
+        Fuel pricing `n` hours ahead prediction time series in [$/kWh].
+    fuel_pricing_predicted_3 : np.array, optional
+        Fuel pricing `n` hours ahead prediction time series in [$/kWh].
     start_time_step: int, optional
         Time step to start reading variables.
     end_time_step: int, optional
@@ -549,8 +558,16 @@ class Pricing(TimeSeriesData):
     """
 
     def __init__(
-        self, electricity_pricing: Iterable[float], electricity_pricing_predicted_1: Iterable[float], electricity_pricing_predicted_2: Iterable[float], 
-        electricity_pricing_predicted_3: Iterable[float], start_time_step: int = None, end_time_step: int = None
+            self,
+            electricity_pricing: Iterable[float],
+            electricity_pricing_predicted_1: Iterable[float],
+            electricity_pricing_predicted_2: Iterable[float],
+            electricity_pricing_predicted_3: Iterable[float],
+            fuel_pricing: Iterable[float] = None,  # NUOVO
+            fuel_pricing_predicted_1: Iterable[float] = None,  # NUOVO
+            fuel_pricing_predicted_2: Iterable[float] = None,  # NUOVO
+            fuel_pricing_predicted_3: Iterable[float] = None,  # NUOVO
+            start_time_step: int = None, end_time_step: int = None
     ):
         super().__init__(start_time_step=start_time_step, end_time_step=end_time_step)
         self.electricity_pricing = np.array(electricity_pricing, dtype='float32')
@@ -558,22 +575,52 @@ class Pricing(TimeSeriesData):
         self.electricity_pricing_predicted_2 = np.array(electricity_pricing_predicted_2, dtype='float32')
         self.electricity_pricing_predicted_3 = np.array(electricity_pricing_predicted_3, dtype='float32')
 
+        # NUOVO: Aggiungi logica per i nuovi campi carburante
+        data_length = len(self.electricity_pricing)
+
+        # Inizializza i prezzi del carburante a zero se non forniti, altrimenti usa i valori passati
+        self.fuel_pricing = np.zeros(data_length, dtype='float32') if fuel_pricing is None else np.array(fuel_pricing,
+                                                                                                         dtype='float32')
+        self.fuel_pricing_predicted_1 = np.zeros(data_length,
+                                                 dtype='float32') if fuel_pricing_predicted_1 is None else np.array(
+            fuel_pricing_predicted_1, dtype='float32')
+        self.fuel_pricing_predicted_2 = np.zeros(data_length,
+                                                 dtype='float32') if fuel_pricing_predicted_2 is None else np.array(
+            fuel_pricing_predicted_2, dtype='float32')
+        self.fuel_pricing_predicted_3 = np.zeros(data_length,
+                                                 dtype='float32') if fuel_pricing_predicted_3 is None else np.array(
+            fuel_pricing_predicted_3, dtype='float32')
+
+
 class CarbonIntensity(TimeSeriesData):
     """`Building` `carbon_intensity` data class.
 
     Parameters
     ----------
     carbon_intensity : np.array
-        Grid carbon emission rate time series in [kg_co2/kWh].
+        Grid (electricity) carbon emission rate time series in [kg_co2/kWh].
+    fuel_carbon_intensity : np.array, optional
+        Fuel (e.g., gas) carbon emission rate time series in [kg_co2/kWh].
     start_time_step: int, optional
         Time step to start reading variables.
     end_time_step: int, optional
          Time step to end reading variables.
     """
 
-    def __init__(self, carbon_intensity: Iterable[float], start_time_step: int = None, end_time_step: int = None):
+    def __init__(self, carbon_intensity: Iterable[float], fuel_carbon_intensity: Iterable[float] = None,
+                 start_time_step: int = None, end_time_step: int = None):  # NUOVO ARGOMENTO
         super().__init__(start_time_step=start_time_step, end_time_step=end_time_step)
+
+        # Questo è per l'elettricità
         self.carbon_intensity = np.array(carbon_intensity, dtype='float32')
+
+        # NUOVO: Aggiungi logica per il nuovo campo carburante
+        data_length = len(self.carbon_intensity)
+
+        # Inizializza l'intensità del carburante a zero se non fornita, altrimenti usa i valori passati
+        self.fuel_carbon_intensity = np.zeros(data_length,
+                                              dtype='float32') if fuel_carbon_intensity is None else np.array(
+            fuel_carbon_intensity, dtype='float32')
 
 
 class ElectricVehicleSimulation(TimeSeriesData):

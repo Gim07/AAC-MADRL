@@ -1175,3 +1175,175 @@ class Battery(StorageDevice, ElectricDevice):
         super().reset()
         self._efficiency_history = self._efficiency_history[0:1]
         self._capacity_history = self._capacity_history[0:1]
+
+
+class FuelCombustionDevice(Device):
+    r"""Classe base per dispositivi a combustione di carburante.
+
+    Parameters
+    ----------
+    nominal_power : float, default: 0.0
+        Potenza nominale di ingresso del carburante del dispositivo >= 0.
+
+    Other Parameters
+    ----------------
+    **kwargs : Any
+        Altri argomenti chiave usati per inizializzare la superclasse.
+    """
+
+    def __init__(self, nominal_power: float = None, **kwargs: Any):
+        super().__init__(**kwargs)
+        self.nominal_power = nominal_power
+
+    @property
+    def nominal_power(self) -> float:
+        r"""Potenza nominale di ingresso del carburante [kW]."""
+
+        return self.__nominal_power
+
+    @nominal_power.setter
+    def nominal_power(self, nominal_power: float):
+        nominal_power = 0.0 if nominal_power is None else nominal_power
+        assert nominal_power >= 0, 'nominal_power must be >= 0.'
+        self.__nominal_power = nominal_power
+
+    @property
+    def fuel_consumption(self) -> np.ndarray:
+        r"""Serie temporale del consumo di carburante [kWh]."""
+
+        return self.__fuel_consumption
+
+    @property
+    def available_nominal_power(self) -> float:
+        r"""Differenza tra `nominal_power` e `fuel_consumption` al `time_step` corrente."""
+
+        return None if self.nominal_power is None else self.nominal_power - self.fuel_consumption[self.time_step]
+
+    def get_metadata(self) -> Mapping[str, Any]:
+        return {
+            **super().get_metadata(),
+            'nominal_power': self.nominal_power,
+        }
+
+    def update_fuel_consumption(self, fuel_consumption: float, enforce_polarity: bool = None):
+        r"""Aggiorna `fuel_consumption` al `time_step` corrente.
+
+        Parameters
+        ----------
+        fuel_consumption: float
+            Valore da aggiungere a `fuel_consumption` del `time_step` corrente. Deve essere >= 0.
+        enforce_polarity: bool, default: True
+            Se consentire solo valori positivi di `fuel_consumption`.
+        """
+
+        enforce_polarity = True if enforce_polarity is None else enforce_polarity
+        assert not enforce_polarity or fuel_consumption >= 0.0, \
+            f'fuel_consumption must be >= 0 but value: {fuel_consumption} was provided.'
+        self.__fuel_consumption[self.time_step] += fuel_consumption
+
+    def reset(self):
+        r"""Resetta `FuelCombustionDevice` allo stato iniziale e imposta `fuel_consumption` a `time_step` 0 a = 0.0."""
+
+        super().reset()
+        self.__fuel_consumption = np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
+
+
+class GasBoiler(FuelCombustionDevice):
+    r"""Classe base per la caldaia a gas.
+
+    Parameters
+    ----------
+    nominal_power : float, default: (0.85, 0.95)
+        Massima quantità di potenza di carburante (gas) che la caldaia può consumare [kW].
+    efficiency : Union[float, Tuple[float, float]], default: 0.9
+        Efficienza tecnica (conversione da carburante a calore).
+
+    Other Parameters
+    ----------------
+    **kwargs : Any
+        Altri argomenti chiave usati per inizializzare la superclasse.
+    """
+
+    def __init__(self, nominal_power: float = None, efficiency: Union[float, Tuple[float, float]] = None,
+                 **kwargs: Any):
+        super().__init__(nominal_power=nominal_power, efficiency=efficiency, **kwargs)
+
+    @FuelCombustionDevice.efficiency.setter
+    def efficiency(self, efficiency: float):
+        efficiency = self._get_property_value(efficiency, (0.85, 0.95))
+        FuelCombustionDevice.efficiency.fset(self, efficiency)
+
+    def get_max_output_power(self, max_fuel_power: Union[float, Iterable[float]] = None) -> Union[
+        float, Iterable[float]]:
+        r"""Restituisce la massima potenza termica in uscita.
+
+        Calcola la massima potenza termica in uscita dalla caldaia date le limitazioni di `max_fuel_power`.
+
+        Parameters
+        ----------
+        max_fuel_power : Union[float, Iterable[float]], optional
+            Quantità massima di potenza di carburante (gas) che la caldaia può consumare dalla rete.
+
+        Returns
+        -------
+        max_output_power : Union[float, Iterable[float]]
+            Massima potenza termica in uscita [kW_th].
+
+        Notes
+        -----
+        max_output_power = min(max_fuel_power, `available_nominal_power`)*`efficiency`
+        """
+
+        if max_fuel_power is None:
+            return self.available_nominal_power * self.efficiency
+        else:
+            return np.min([max_fuel_power, self.available_nominal_power], axis=0) * self.efficiency
+
+    def get_input_power(self, output_power: Union[float, Iterable[float]]) -> Union[float, Iterable[float]]:
+        r"""Restituisce la potenza di carburante in ingresso.
+
+        Calcola la domanda di carburante (gas) necessaria per soddisfare `output_power`.
+
+        Parameters
+        ----------
+        output_power : Union[float, Iterable[float]]
+            Potenza termica in uscita richiesta dalla caldaia [kW_th].
+
+        Returns
+        -------
+        input_power : Union[float, Iterable[float]]
+            Potenza di carburante in ingresso richiesta [kW_fuel].
+
+        Notes
+        -----
+        input_power = output_power/`efficiency`
+        """
+
+        return np.array(output_power) / self.efficiency
+
+    def autosize(self, demand: Iterable[float], safety_factor: Union[float, Tuple[float, float]] = None) -> float:
+        r"""Dimensiona automaticamente `nominal_power`.
+
+        Imposta `nominal_power` (potenza carburante) alla potenza minima necessaria per soddisfare sempre `demand` (domanda termica).
+
+        Parameters
+        ----------
+        demand : Union[float, Iterable[float]], optional
+            Domanda di riscaldamento in [kWh].
+        safety_factor : Union[float, Tuple[float, float]], default: 1.0
+            `nominal_power` è sovradimensionata del fattore `safety_factor`.
+
+        Returns
+        -------
+        nominal_power : float
+            Potenza nominale (carburante) dimensionata automaticamente [kW_fuel].
+
+        Notes
+        -----
+        `nominal_power` = max(demand/`efficiency`)*safety_factor
+        """
+
+        safety_factor = safety_factor = self._get_property_value(safety_factor, 1.0)
+        nominal_power = np.nanmax(np.array(demand) / self.efficiency) * safety_factor
+
+        return nominal_power
