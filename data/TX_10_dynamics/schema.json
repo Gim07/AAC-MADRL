@@ -90,23 +90,23 @@
       "shared_in_central_agent": true
     },
     "electricity_pricing": {
-      "active": false,
+      "active": true,
       "shared_in_central_agent": true
     },
     "electricity_pricing_predicted_1": {
-      "active": false,
+      "active": true,
       "shared_in_central_agent": true
     },
     "electricity_pricing_predicted_2": {
-      "active": false,
+      "active": true,
       "shared_in_central_agent": true
     },
     "electricity_pricing_predicted_3": {
-      "active": false,
+      "active": true,
       "shared_in_central_agent": true
     },
     "carbon_intensity": {
-      "active": false,
+      "active": true,
       "shared_in_central_agent": true
     },
     "indoor_dry_bulb_temperature": {
@@ -146,15 +146,15 @@
       "shared_in_central_agent": false
     },
     "indoor_dry_bulb_temperature_cooling_set_point": {
-      "active": true,
+      "active": false,
       "shared_in_central_agent": false
     },
     "indoor_dry_bulb_temperature_heating_set_point": {
-      "active": true,
+      "active": false,
       "shared_in_central_agent": false
     },
     "comfort_band": {
-      "active": true,
+      "active": false,
       "shared_in_central_agent": false
     },
     "indoor_dry_bulb_temperature_cooling_delta": {
@@ -271,8 +271,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-6887.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing.csv",
       "inactive_observations": [],
       "inactive_actions": [],
       "cooling_device": {
@@ -311,7 +311,7 @@
           "input_size": null,
           "hidden_size": 8,
           "num_layers": 2,
-          "lookback": 13,
+          "lookback": 12,
           "filename": "resstock-amy2018-2021-release-1-6887.pth",
           "input_normalization_minimum": [
             -1.0,
@@ -366,8 +366,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-15942.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing.csv",
       "inactive_observations": [],
       "inactive_actions": [],
       "cooling_device": {
@@ -406,7 +406,7 @@
           "input_size": null,
           "hidden_size": 8,
           "num_layers": 2,
-          "lookback": 13,
+          "lookback": 12,
           "filename": "resstock-amy2018-2021-release-1-15942.pth",
           "input_normalization_minimum": [
             -1.0,
@@ -461,8 +461,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-20687.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing.csv",
       "inactive_observations": [],
       "inactive_actions": [],
       "cooling_device": {
@@ -501,7 +501,7 @@
           "input_size": null,
           "hidden_size": 8,
           "num_layers": 2,
-          "lookback": 13,
+          "lookback": 12,
           "filename": "resstock-amy2018-2021-release-1-20687.pth",
           "input_normalization_minimum": [
             -1.0,
@@ -556,8 +556,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-21356.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing.csv",
       "inactive_observations": [],
       "inactive_actions": [],
       "cooling_device": {
@@ -596,7 +596,7 @@
           "input_size": null,
           "hidden_size": 8,
           "num_layers": 2,
-          "lookback": 13,
+          "lookback": 12,
           "filename": "resstock-amy2018-2021-release-1-21356.pth",
           "input_normalization_minimum": [
             -1.0,
@@ -651,8 +651,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-36456.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -693,7 +693,7 @@
           "input_size": null,
           "hidden_size": 8,
           "num_layers": 2,
-          "lookback": 13,
+          "lookback": 12,
           "filename": "resstock-amy2018-2021-release-1-36456.pth",
           "input_normalization_minimum": [
             -1.0,
@@ -748,8 +748,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-43845.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing.csv",
       "inactive_observations": [],
       "inactive_actions": [],
       "cooling_device": {
@@ -788,7 +788,7 @@
           "input_size": null,
           "hidden_size": 8,
           "num_layers": 2,
-          "lookback": 13,
+          "lookback": 12,
           "filename": "resstock-amy2018-2021-release-1-43845.pth",
           "input_normalization_minimum": [
             -1.0,
@@ -843,8 +843,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-46421.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -885,7 +885,7 @@
           "input_size": null,
           "hidden_size": 8,
           "num_layers": 2,
-          "lookback": 13,
+          "lookback": 12,
           "filename": "resstock-amy2018-2021-release-1-46421.pth",
           "input_normalization_minimum": [
             -1.0,
@@ -940,8 +940,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-50879.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -982,7 +982,7 @@
           "input_size": null,
           "hidden_size": 8,
           "num_layers": 2,
-          "lookback": 13,
+          "lookback": 12,
           "filename": "resstock-amy2018-2021-release-1-50879.pth",
           "input_normalization_minimum": [
             -1.0,
@@ -1037,8 +1037,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-63192.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -1079,7 +1079,7 @@
           "input_size": null,
           "hidden_size": 8,
           "num_layers": 2,
-          "lookback": 13,
+          "lookback": 12,
           "filename": "resstock-amy2018-2021-release-1-63192.pth",
           "input_normalization_minimum": [
             -1.0,
@@ -1134,8 +1134,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-68142.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -1176,7 +1176,7 @@
           "input_size": null,
           "hidden_size": 8,
           "num_layers": 2,
-          "lookback": 13,
+          "lookback": 12,
           "filename": "resstock-amy2018-2021-release-1-68142.pth",
           "input_normalization_minimum": [
             -1.0,

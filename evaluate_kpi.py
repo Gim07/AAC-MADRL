@@ -6,9 +6,11 @@ from typing import List, Optional, Tuple
 # ---------- path helpers ----------
 
 ALGO_DIR = {
-    "AAC-MADRL": "aac_madrl",
+    # "AAC-MADRL": "aac_madrl",
     "SAC": "sac",
-    "RBC": "rbc",
+    "P_RBC": "P_rbc",
+    "PI_RBC": "PI_rbc",
+    "PID_RBC": "PID_rbc",
 }
 
 def find_obs_csv(outputs_root: Path, dataset_key: str, algorithm: str, beta: float, lr: float, gamma: float) -> Path:
@@ -20,7 +22,7 @@ def find_obs_csv(outputs_root: Path, dataset_key: str, algorithm: str, beta: flo
     algo_dir = ALGO_DIR.get(algo, algo.lower())
     base = outputs_root / dataset_key / "schema.json" / "obs" / algo_dir
 
-    if algo == "RBC":
+    if "RBC" in algo:
         candidates = [base / "district_obs.csv"]
     else:
         candidates = [
@@ -176,11 +178,11 @@ def process_kpi(outputs_root: Path, dataset_key: str, algorithm: str, kpi_dir: P
 if __name__ == "__main__":
     # Config
     building_counts = [10]
-    learning_rate = 0.001
-    control_algorithms = ["RBC", "SAC", "AAC-MADRL"]
-    beta = 0.0
-    gamma = 2.8
-    dataset = "CA"                         # per comporre dataset_key
+    learning_rate = 0.0003
+    control_algorithms = ["P_RBC", "PI_RBC", "PID_RBC", "SAC"]
+    beta = 0.5
+    gamma = 3.5
+    dataset = "TX"  # per comporre dataset_key
     start_date = "2017-02-01 00:00:00"
 
     outputs_root = Path.cwd() / "outputs" / "data"
@@ -193,50 +195,47 @@ if __name__ == "__main__":
         kpi_dir = outputs_root / dataset_key / "schema.json" / "kpi" / "test" / f"beta={beta}_gamma={gamma}" / f"lr={learning_rate}"
         kpi_dir.mkdir(parents=True, exist_ok=True)
 
-        # Processa ogni algoritmo
-        df_rbc, df_rbc_kpi, _ = process_kpi(outputs_root, dataset_key, "RBC",        kpi_dir, learning_rate, beta, gamma)
-        df_aac, df_aac_kpi,   _ = process_kpi(outputs_root, dataset_key, "AAC-MADRL", kpi_dir, learning_rate, beta, gamma)
-        df_sac, df_sac_kpi,   _ = process_kpi(outputs_root, dataset_key, "SAC",       kpi_dir, learning_rate, beta, gamma)
+        # Dictionaries to store results for all algorithms
+        df_obs_dict = {}
+        df_kpi_dict = {}
+        kpi_file_dict = {}
 
-        # allinea index a datetime (se serve in seguito)
-        num_hours = len(df_rbc)
+        # Process each algorithm and store results
+        for algo in control_algorithms:
+            print(f"Processing {algo}...")
+            df_obs, df_kpi, kpi_file = process_kpi(outputs_root, dataset_key, algo, kpi_dir, learning_rate, beta, gamma)
+            df_obs_dict[algo] = df_obs
+            df_kpi_dict[algo] = df_kpi
+            kpi_file_dict[algo] = kpi_file
+
+        # Align index to datetime for all algorithms
+        num_hours = len(df_obs_dict[control_algorithms[0]])
         date_range = pd.date_range(start=start_date, periods=num_hours, freq="h")
-        for df in [df_rbc, df_aac, df_sac]:
-            df.index = date_range
 
-        # daily aggregates (se servono)
-        daily_dfs = {
-            "RBC": df_rbc.resample("D").agg({
+        for algo in control_algorithms:
+            df_obs_dict[algo].index = date_range
+
+        # Calculate daily aggregates for all algorithms
+        daily_dfs = {}
+        for algo in control_algorithms:
+            daily_dfs[algo] = df_obs_dict[algo].resample("D").agg({
                 "net electricity consumption": ["max", "mean"],
                 "positive net electricity consumption": ["max", "mean"],
-            }),
-            "AAC-MADRL": df_aac.resample("D").agg({
-                "net electricity consumption": ["max", "mean"],
-                "positive net electricity consumption": ["max", "mean"],
-            }),
-            "SAC": df_sac.resample("D").agg({
-                "net electricity consumption": ["max", "mean"],
-                "positive net electricity consumption": ["max", "mean"],
-            }),
-        }
+            })
 
-        for algorithm in ["RBC", "AAC-MADRL", "SAC"]:
-            daily_df = daily_dfs[algorithm]
-            df_kpi = {
-                "RBC": df_rbc_kpi,
-                "AAC-MADRL": df_aac_kpi,
-                "SAC": df_sac_kpi,
-            }[algorithm]
+        # Update KPI files with Daily Peak Average for each algorithm
+        for algo in control_algorithms:
+            daily_df = daily_dfs[algo]
+            df_kpi = df_kpi_dict[algo]
 
+            # Calculate average daily peak
             average_daily_peak = float(daily_df["net electricity consumption"]["max"].mean())
             df_kpi.loc["Daily Peak Average", "District"] = average_daily_peak
 
-            # salva ogni volta sul file CSV corretto
-            if algorithm == "RBC":
-                kpi_path = kpi_dir / f"{algorithm.lower()}.csv"
-            else:
-                kpi_path = kpi_dir / f"{algorithm.lower()}_lr={learning_rate}.csv"
+            # Save updated KPI file
+            kpi_path = kpi_file_dict[algo]
             df_kpi.to_csv(kpi_path, index=True, index_label="cost_function")
+            print(f"Updated KPI file for {algo}: {kpi_path}")
 
-
+        print(f"Completed processing for {dataset_key}")
 

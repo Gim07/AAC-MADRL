@@ -571,14 +571,14 @@ class MARLISA(SAC):
         return str(zip_path)
 
 class MARLISARBC(MARLISA, SACRBC):
-    r"""Uses :py:class:`citylearn.agents.rbc.RBC` to select action during exploration before using :py:class:`citylearn.agents.marlisa.MARLISA`.
+    r"""Uses :py:class:`citylearn.agents.P_rbc.RBC` to select action during exploration before using :py:class:`citylearn.agents.marlisa.MARLISA`.
 
     Parameters
     ----------
     env: CityLearnEnv
         CityLearn environment.
     rbc: RBC
-        :py:class:`citylearn.agents.rbc.RBC` or child class, used to select actions during exploration.
+        :py:class:`citylearn.agents.P_rbc.RBC` or child class, used to select actions during exploration.
     
     Other Parameters
     ----------------

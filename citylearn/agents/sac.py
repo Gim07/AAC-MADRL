@@ -455,14 +455,14 @@ class SAC(RLC):
         print(".... models loaded ✓")
 
 class SACRBC(SAC):
-    r"""Uses :py:class:`citylearn.agents.rbc.RBC` to select actions during exploration before using :py:class:`citylearn.agents.sac.SAC`.
+    r"""Uses :py:class:`citylearn.agents.P_rbc.RBC` to select actions during exploration before using :py:class:`citylearn.agents.sac.SAC`.
 
     Parameters
     ----------
     env: CityLearnEnv
         CityLearn environment.
     rbc: RBC
-        :py:class:`citylearn.agents.rbc.RBC` or child class, used to select actions during exploration.
+        :py:class:`citylearn.agents.P_rbc.RBC` or child class, used to select actions during exploration.
     
     Other Parameters
     ----------------
@@ -476,8 +476,8 @@ class SACRBC(SAC):
 
     @property
     def rbc(self) -> RBC:
-        """:py:class:`citylearn.agents.rbc.RBC` class child class or string path to an RBC 
-        class e.g. 'citylearn.agents.rbc.RBC', used to select actions during exploration."""
+        """:py:class:`citylearn.agents.P_rbc.RBC` class child class or string path to an RBC
+        class e.g. 'citylearn.agents.P_rbc.RBC', used to select actions during exploration."""
 
         return self.__rbc
     

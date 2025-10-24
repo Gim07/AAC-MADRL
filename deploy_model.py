@@ -11,7 +11,7 @@ from citylearn.citylearn import CityLearnEnv
 from citylearn.agents.aac_madrl import AAC_MADRL
 from citylearn.agents.sac import SAC
 from citylearn.agents.marlisa import MARLISA
-from citylearn.agents.rbc import TemperatureBasedRBC as RBC
+from citylearn.agents.rbc import PIDTemperatureController as RBC
 
 
 # ----------------------------- helpers -----------------------------
@@ -345,7 +345,7 @@ def parse_args():
     p.add_argument(
         "--dataset-anchor",
         type=Path,
-        default=Path(r"C:\Users\sabry\Documents\Citylearn_dinamics\outputs\data\TX_10_dynamics\schema.json"),
+        default=Path(r"outputs\data\TX_10_dynamics\schema.json"),
         help="Cartella 'chiave dataset' sotto outputs (può chiamarsi 'schema.json'). Se è un file, userà la sua cartella padre per salvare.",
     )
     p.add_argument("--model-type", choices=["AAC_MADRL", "MARLISA", "SAC", "SAC_CENTRALIZED", "RBC"], required=True)
