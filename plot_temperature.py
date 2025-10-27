@@ -13,26 +13,36 @@ from matplotlib.ticker import MaxNLocator
 # -------------------- CONFIG --------------------
 DATA_DIR = Path.cwd()
 N_BUILDINGS = 10
-ALGOS = ['P_RBC', 'PI_RBC', 'PID_RBC', 'SAC']  # <-- Indoor T con colori diversi + legenda
-district = 'TX'
+ALGOS = [
+    # 'P_RBC',
+    # 'PI_RBC',
+    # 'PID_RBC',
+    # 'GB_PID_RBC',
+    'SAC'
+]  # <-- Indoor T con colori diversi + legenda
+district = 'CA'
 dataset_key = f"{district}_{N_BUILDINGS}_dynamics"
 beta = 0.5
 gamma = 3.5
 lr = 0.0003
+season = 'winter'
 
 # Pattern cartelle (aggiungi/varia se necessario)
 ALGO_PATTERNS: Dict[str, List[str]] = {
     'P_RBC': [
-        f"outputs/data/{dataset_key}/schema.json/obs/P_rbc/obs_building" + "_{i}.csv",
+        f"outputs/data/{dataset_key}/schema.json/obs/{season}/P_rbc/obs_building" + "_{i}.csv",
     ],
     'PI_RBC': [
-        f"outputs/data/{dataset_key}/schema.json/obs/PI_rbc/obs_building" + "_{i}.csv",
+        f"outputs/data/{dataset_key}/schema.json/obs/{season}/PI_rbc/obs_building" + "_{i}.csv",
     ],
     'PID_RBC': [
-        f"outputs/data/{dataset_key}/schema.json/obs/PID_rbc/obs_building" + "_{i}.csv",
+        f"outputs/data/{dataset_key}/schema.json/obs/{season}/PID_rbc/obs_building" + "_{i}.csv",
+    ],
+    'GB_PID_RBC': [
+        f"outputs/data/{dataset_key}/schema.json/obs/{season}/GB_PID_rbc/obs_building" + "_{i}.csv",
     ],
     'SAC': [
-        f"outputs/data/{dataset_key}/schema.json/obs/sac/beta={beta}_gamma={gamma}/lr={lr}/obs_building" + "_{i}.csv",
+        f"outputs/data/{dataset_key}/schema.json/obs/{season}/sac/beta={beta}_gamma={gamma}/lr={lr}/obs_building" + "_{i}.csv",
     ],
     # 'AAC-MADRL': [
     #     f"outputs/data/{dataset_key}/obs/aac_madrl/beta={beta}_gamma={gamma}/lr={lr}/obs_building" + "_{i}.csv",
@@ -40,7 +50,7 @@ ALGO_PATTERNS: Dict[str, List[str]] = {
 }
 
 # Dataset orario a partire da:
-START_DATE = pd.Timestamp("2017-07-01 00:00:00")
+START_DATE = pd.Timestamp("2023-07-01 00:00:00") if season == "summer" else pd.Timestamp("2023-01-01 00:00:00")
 
 # Layout figura
 COLS = 2

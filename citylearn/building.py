@@ -650,8 +650,8 @@ class Building(Environment):
 
         capacity = abs(self.solar_generation[self.time_step]) - (
             self.cooling_device.electricity_consumption[self.time_step]
-            + self.heating_device.electricity_consumption[self.time_step]
-            + self.dhw_device.electricity_consumption[self.time_step]
+            + self.heating_device.electricity_consumption[self.time_step] if isinstance(self.heating_device, HeatPump or ElectricHeater) else np.zeros(self.time_step + 1, dtype='float32')
+            + self.dhw_device.electricity_consumption[self.time_step] if isinstance(self.dhw_device, HeatPump or ElectricHeater) else np.zeros(self.time_step + 1, dtype='float32')
             + self.non_shiftable_load_device.electricity_consumption[self.time_step]
             + self.electrical_storage.electricity_consumption[self.time_step]
         )
@@ -709,6 +709,10 @@ class Building(Environment):
     def pricing(self, pricing: Pricing):
         if pricing is None:
             self.__pricing = Pricing(
+                np.zeros(self.episode_tracker.simulation_time_steps, dtype='float32'),
+                np.zeros(self.episode_tracker.simulation_time_steps, dtype='float32'),
+                np.zeros(self.episode_tracker.simulation_time_steps, dtype='float32'),
+                np.zeros(self.episode_tracker.simulation_time_steps, dtype='float32'),
                 np.zeros(self.episode_tracker.simulation_time_steps, dtype='float32'),
                 np.zeros(self.episode_tracker.simulation_time_steps, dtype='float32'),
                 np.zeros(self.episode_tracker.simulation_time_steps, dtype='float32'),
@@ -1020,8 +1024,8 @@ class Building(Environment):
             'dhw_demand': self.__energy_from_dhw_device[self.time_step] + abs(min(self.dhw_storage.energy_balance[self.time_step], 0.0)),
             'net_electricity_consumption': self.net_electricity_consumption[self.time_step],
             'cooling_electricity_consumption': self.cooling_electricity_consumption[self.time_step],
-            'heating_electricity_consumption': self.heating_electricity_consumption[self.time_step],
-            'dhw_electricity_consumption': self.dhw_electricity_consumption[self.time_step],
+            'heating_electricity_consumption': self.heating_electricity_consumption[self.time_step] if isinstance(self.heating_device, (HeatPump, ElectricHeater)) else 0.0,
+            'dhw_electricity_consumption': self.dhw_electricity_consumption[self.time_step] if isinstance(self.dhw_device, (HeatPump, ElectricHeater)) else 0.0,
             'cooling_storage_electricity_consumption': self.cooling_storage_electricity_consumption[self.time_step],
             'heating_storage_electricity_consumption': self.heating_storage_electricity_consumption[self.time_step],
             'dhw_storage_electricity_consumption': self.dhw_storage_electricity_consumption[self.time_step],
@@ -1323,6 +1327,7 @@ class Building(Environment):
         temperature = self.weather.outdoor_dry_bulb_temperature[self.time_step]
         storage_output = self.energy_from_dhw_storage[self.time_step]
         max_electric_power = self.downward_electrical_flexibility
+
         # MODIFICA BLOCCO LOGICA PER max_device_output
         if isinstance(self.dhw_device, HeatPump):
             max_device_output = self.dhw_device.get_max_output_power(temperature, heating=True,
@@ -1345,9 +1350,7 @@ class Building(Environment):
         elif isinstance(self.dhw_device, GasBoiler):
             fuel_consumption = self.dhw_device.get_input_power(device_output)
             self.dhw_device.update_fuel_consumption(max(0.0, fuel_consumption))
-        # FINE MODIFICA
-        self.___electricity_consumption_polarity_check('dhw', device_output, electricity_consumption)
-        self.dhw_device.update_electricity_consumption(max(0.0, electricity_consumption))
+
 
     def update_dhw_storage(self, action: float):
         r"""Charge/discharge `dhw_storage` for current time step.
@@ -2208,7 +2211,12 @@ class Building(Environment):
             else:
                 heating_electricity_consumption = self.dhw_device.get_input_power(heating_demand)
 
-            self.heating_device.update_electricity_consumption(heating_electricity_consumption)
+            if isinstance(self.heating_device, GasBoiler):
+                heating_fuel_consumption = self.heating_device.get_input_power(heating_demand)
+
+                self.heating_device.update_fuel_consumption(heating_fuel_consumption)
+            else:
+                self.heating_device.update_electricity_consumption(heating_electricity_consumption)
 
             # dhw electricity consumption
             dhw_demand = self.__energy_from_dhw_device[self.time_step] + self.dhw_storage.energy_balance[self.time_step]
@@ -2218,7 +2226,12 @@ class Building(Environment):
             else:
                 dhw_electricity_consumption = self.dhw_device.get_input_power(dhw_demand)
 
-            self.dhw_device.update_electricity_consumption(dhw_electricity_consumption)
+            if isinstance(self.dhw_device, GasBoiler):
+                dhw_fuel_consumption = self.dhw_device.get_input_power(dhw_demand)
+
+                self.dhw_device.update_fuel_consumption(dhw_fuel_consumption)
+            else:
+                self.dhw_device.update_electricity_consumption(dhw_electricity_consumption)
 
             # non shiftable load electricity consumption
             non_shiftable_load_electricity_consumption = self.__energy_to_non_shiftable_load[self.time_step]
@@ -2288,7 +2301,7 @@ class Building(Environment):
         try:
             fuel_price = self.pricing.fuel_pricing[self.time_step]
         except AttributeError:
-            fuel_price = 0.0  # Valore di default se non implementato
+            fuel_price = 0.5  # Valore di default se non implementato
 
         try:
             fuel_carbon = self.carbon_intensity.fuel_carbon_intensity[self.time_step]
@@ -2645,7 +2658,7 @@ class LSTMDynamicsBuilding(DynamicsBuilding):
                     self.weather.outdoor_dry_bulb_temperature[self.time_step],
                     heating=True,
                     max_electric_power=electric_power
-                ) if isinstance(self.heating_device, HeatPump) else self.heating_device.get_max_output_power(max_electric_power=electric_power)
+                ) if isinstance(self.heating_device, HeatPump) else self.heating_device.get_max_output_power(max_fuel_power=electric_power)
             else:
                 demand = 0.0
 

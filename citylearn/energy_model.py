@@ -1178,27 +1178,38 @@ class Battery(StorageDevice, ElectricDevice):
 
 
 class FuelCombustionDevice(Device):
-    r"""Classe base per dispositivi a combustione di carburante.
+    r"""Base class for fuel combustion devices.
 
     Parameters
     ----------
     nominal_power : float, default: 0.0
-        Potenza nominale di ingresso del carburante del dispositivo >= 0.
+        Nominal fuel input power of the device >= 0. [kW]
 
     Other Parameters
     ----------------
     **kwargs : Any
-        Altri argomenti chiave usati per inizializzare la superclasse.
+        Other keyword arguments used to initialize the superclass.
     """
 
     def __init__(self, nominal_power: float = None, **kwargs: Any):
         super().__init__(**kwargs)
         self.nominal_power = nominal_power
+        # Initialize the electricity consumption array here if needed,
+        # otherwise, it will be done in reset.
+        # Ensure reset is called after episode_tracker is set
+        if hasattr(self, 'episode_tracker') and self.episode_tracker is not None:
+             ts = self.episode_tracker.episode_time_steps
+             self.__fuel_consumption = np.zeros(ts, dtype='float32')
+             self.__electricity_consumption = np.zeros(ts, dtype='float32')
+        else:
+             # Initialize as empty, will be correctly sized in reset()
+             self.__fuel_consumption = np.array([], dtype='float32')
+             self.__electricity_consumption = np.array([], dtype='float32')
+
 
     @property
     def nominal_power(self) -> float:
-        r"""Potenza nominale di ingresso del carburante [kW]."""
-
+        r"""Nominal fuel input power [kW]."""
         return self.__nominal_power
 
     @nominal_power.setter
@@ -1209,15 +1220,56 @@ class FuelCombustionDevice(Device):
 
     @property
     def fuel_consumption(self) -> np.ndarray:
-        r"""Serie temporale del consumo di carburante [kWh]."""
+        r"""Fuel consumption time series [kWh]."""
+        # Ensure __fuel_consumption is initialized (in reset)
+        try:
+            return self.__fuel_consumption
+        except AttributeError:
+             # Fallback in case reset hasn't been called yet or failed
+             # Try to get size if possible
+             if hasattr(self, 'episode_tracker') and self.episode_tracker is not None:
+                 print("Warning: Accessing __fuel_consumption possibly before reset, initializing to zeros.")
+                 return np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
+             else:
+                 print("Warning: __fuel_consumption accessed before reset and episode_tracker unavailable.")
+                 return np.array([], dtype='float32')
 
-        return self.__fuel_consumption
+    # --- CHANGE 1: Make the electricity_consumption property return zeros ---
+    @property
+    def electricity_consumption(self) -> np.ndarray:
+        r"""Electricity consumption time series [kWh]. Will always be zero for this device."""
+        # Ensure __electricity_consumption is initialized (in reset)
+        try:
+            # Returns the internal array, which will never be modified
+            return self.__electricity_consumption
+        except AttributeError:
+             # Fallback in case reset hasn't been called yet or failed
+             if hasattr(self, 'episode_tracker') and self.episode_tracker is not None:
+                 print("Warning: Accessing __electricity_consumption possibly before reset, initializing to zeros.")
+                 return np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
+             else:
+                 print("Warning: __electricity_consumption accessed before reset and episode_tracker unavailable.")
+                 return np.array([], dtype='float32')
 
     @property
     def available_nominal_power(self) -> float:
-        r"""Differenza tra `nominal_power` e `fuel_consumption` al `time_step` corrente."""
+        r"""Difference between `nominal_power` and `fuel_consumption` at the current `time_step`."""
+        # Ensure fuel_consumption is accessible and time_step is valid
+        current_fuel_consumption = 0.0
+        # Check attribute existence and index validity
+        if hasattr(self, '_FuelCombustionDevice__fuel_consumption') and hasattr(self, 'time_step') and 0 <= self.time_step < len(self.__fuel_consumption):
+             current_fuel_consumption = self.__fuel_consumption[self.time_step]
+        elif not hasattr(self, '_FuelCombustionDevice__fuel_consumption'):
+             print("Warning: available_nominal_power accessed before __fuel_consumption initialized.")
+        # else: # time_step might be out of bounds, use 0.0
+        #     print(f"Warning: time_step {self.time_step} out of bounds for fuel_consumption in available_nominal_power.")
 
-        return None if self.nominal_power is None else self.nominal_power - self.fuel_consumption[self.time_step]
+        # Handle nominal_power potentially being None (though setter prevents it now)
+        if self.nominal_power is None:
+            return None
+        else:
+            return self.nominal_power - current_fuel_consumption
+
 
     def get_metadata(self) -> Mapping[str, Any]:
         return {
@@ -1226,26 +1278,52 @@ class FuelCombustionDevice(Device):
         }
 
     def update_fuel_consumption(self, fuel_consumption: float, enforce_polarity: bool = None):
-        r"""Aggiorna `fuel_consumption` al `time_step` corrente.
-
-        Parameters
-        ----------
-        fuel_consumption: float
-            Valore da aggiungere a `fuel_consumption` del `time_step` corrente. Deve essere >= 0.
-        enforce_polarity: bool, default: True
-            Se consentire solo valori positivi di `fuel_consumption`.
-        """
-
+        r"""Updates `fuel_consumption` at the current `time_step`."""
         enforce_polarity = True if enforce_polarity is None else enforce_polarity
         assert not enforce_polarity or fuel_consumption >= 0.0, \
             f'fuel_consumption must be >= 0 but value: {fuel_consumption} was provided.'
-        self.__fuel_consumption[self.time_step] += fuel_consumption
+
+        # Ensure the array exists before trying to update it
+        if hasattr(self, '_FuelCombustionDevice__fuel_consumption'):
+            try:
+                # Check index bounds before assignment
+                if 0 <= self.time_step < len(self.__fuel_consumption):
+                    self.__fuel_consumption[self.time_step] += fuel_consumption
+                else:
+                     # Log or raise an error if time_step is invalid
+                     print(f"Error: time_step {self.time_step} is out of bounds for __fuel_consumption array (len={len(self.__fuel_consumption)}).")
+
+            except AttributeError:
+                 # This might happen if reset failed or wasn't called properly
+                 print("Error: __fuel_consumption not initialized correctly before update.")
+        else:
+             # This indicates a likely logic error - update called before reset
+             print("Error: update_fuel_consumption called before reset initializes __fuel_consumption.")
+
+    # --- CHANGE 2: Prevent updating electricity consumption ---
+    def update_electricity_consumption(self, electricity_consumption: float, enforce_polarity: bool = None):
+        r"""This method does nothing for FuelCombustionDevice,
+           as it does not consume electricity."""
+        # Do nothing, or log a warning if called erroneously
+        # print("Warning: update_electricity_consumption called on a FuelCombustionDevice.")
+        pass # Prevents any modification to __electricity_consumption
 
     def reset(self):
-        r"""Resetta `FuelCombustionDevice` allo stato iniziale e imposta `fuel_consumption` a `time_step` 0 a = 0.0."""
+        r"""Resets `FuelCombustionDevice` to initial state."""
+        super().reset() # Resets time_step to 0
 
-        super().reset()
-        self.__fuel_consumption = np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
+        # Ensure episode_tracker is available and has the necessary attribute
+        if hasattr(self, 'episode_tracker') and self.episode_tracker is not None and hasattr(self.episode_tracker, 'episode_time_steps'):
+             ts = self.episode_tracker.episode_time_steps
+             self.__fuel_consumption = np.zeros(ts, dtype='float32')
+             # Always initialize to zeros and prevent modification
+             self.__electricity_consumption = np.zeros(ts, dtype='float32')
+        else:
+             # Handle the case where episode_tracker is not ready
+             # Initialize with size 0 or raise an error, depending on desired behavior
+             print("Warning: Reset called before episode_tracker is fully initialized or lacks episode_time_steps.")
+             self.__fuel_consumption = np.array([], dtype='float32')
+             self.__electricity_consumption = np.array([], dtype='float32')
 
 
 class GasBoiler(FuelCombustionDevice):

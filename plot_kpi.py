@@ -18,10 +18,11 @@ kpi_dir.mkdir(parents=True, exist_ok=True)
 
 # File KPI (ogni CSV ha colonne: cost_function,District)
 kpi_files = {
-    "P_RBC": kpi_dir / f"p_rbc_lr={lr}.csv",
-    "PI_RBC": kpi_dir / f"pi_rbc_lr={lr}.csv",
+    # "P_RBC": kpi_dir / f"p_rbc_lr={lr}.csv",
+    # "PI_RBC": kpi_dir / f"pi_rbc_lr={lr}.csv",
     "PID_RBC": kpi_dir / f"pid_rbc_lr={lr}.csv",
-    "SAC": kpi_dir / f"sac_lr={lr}.csv",
+    "GB_PID_RBC": kpi_dir / f"gb_pid_rbc_lr={lr}.csv",
+    # "SAC": kpi_dir / f"sac_lr={lr}.csv",
 }
 
 # Ordine desiderato delle KPI
