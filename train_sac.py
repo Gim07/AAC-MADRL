@@ -4,6 +4,14 @@ from pathlib import Path
 import os
 import argparse
 import sys
+# from citylearn.agents.sac import SAC as RLAgent
+
+from stable_baselines3 import SAC as RLAgent
+from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.base_class import BaseAlgorithm
+
+from citylearn.citylearn import CityLearnEnv
+from citylearn.wrappers import NormalizedObservationWrapper, StableBaselines3Wrapper
 
 # --- Optional wandb import (può essere disabilitato) ---
 try:
@@ -11,7 +19,7 @@ try:
 except Exception:
     wandb = None
 
-from citylearn.agents.sac import SAC as RLAgent
+
 from citylearn.citylearn import CityLearnEnv
 
 
@@ -49,7 +57,7 @@ def parse_args():
         help=("Nome dataset CityLearn oppure path/cartella o solo NOME locale (risolto a .../schema.json). "
               "Default: data/schema.json."),
     )
-    p.add_argument("--central-agent", action="store_true", help="Usa un agente centrale.")
+    p.add_argument("--central-agent", default=True, action="store_true", help="Usa un agente centrale.")
     p.add_argument("--episodes", default=12, type=int, help="Episodi di training.")
     p.add_argument("--lr", default=3e-4, type=float, help="Learning rate.")
     p.add_argument("--beta", default=0.0, type=float, help="Valore beta (tenuto nei config/W&B).")
@@ -155,18 +163,57 @@ def main():
     if args.gamma is not None:
         reward_kwargs["gamma"] = args.gamma
 
+    sim_period = env_kwargs.get("simulation_end_time_step", 4343) - env_kwargs.get("simulation_start_time_step", 3624) + 1
+    
     # Passa le kwargs alla reward SOLO una volta
     if reward_kwargs:
         env_kwargs["reward_function_kwargs"] = reward_kwargs
     env = CityLearnEnv(dataset_arg, **env_kwargs)
-    model = RLAgent(env, lr=args.lr)
 
-    # --- Train ---
-    model.learn(episodes=args.episodes)
+    if issubclass(RLAgent, BaseAlgorithm):
+        print("[INFO] Detected SB3 BaseAlgorithm subclass for RLAgent.")
 
-    # --- Save: SOLO ZIP → outputs/save_models/sac/beta/lr/sac.zip ---
-    dtype_arg = None if args.weights_dtype == "none" else args.weights_dtype
-    model.save_models(zip_path=str(zip_file), dtype=dtype_arg)
+        # Applica i wrapper PRIMA di creare il modello
+        env = NormalizedObservationWrapper(env)
+        env = StableBaselines3Wrapper(env)
+
+        # Verifica compatibilità (opzionale)
+        try:
+            check_env(env)
+            print('[INFO] CityLearn is compatible with SB3 when using the StableBaselines3Wrapper.')
+        except Exception as e:
+            print(f'[WARNING] Environment check failed: {e}')
+
+        model = RLAgent(
+            policy="MlpPolicy",
+            env=env,
+            learning_rate=args.lr,
+            verbose=1,
+            batch_size=256,
+            buffer_size=int(sim_period * 1.5),
+            learning_starts=int(sim_period),
+            gamma=0.99,
+            policy_kwargs=dict(net_arch=[64, 128, 128, 64]),
+        )
+
+        model.learn(total_timesteps=int(args.episodes * sim_period))
+
+        print('Training completed.')
+
+        # --- Save: SOLO ZIP → outputs/save_models/sac/beta/lr/sac.zip ---
+        dtype_arg = None if args.weights_dtype == "none" else args.weights_dtype
+        print("dtype_arg:", dtype_arg)
+        model.save(str(zip_file))
+
+    else:
+        model = RLAgent(env, lr=args.lr)
+
+        # --- Train ---
+        model.learn(episodes=args.episodes)
+
+        # --- Save: SOLO ZIP → outputs/save_models/sac/beta/lr/sac.zip ---
+        dtype_arg = None if args.weights_dtype == "none" else args.weights_dtype
+        model.save_models(zip_path=str(zip_file), dtype=dtype_arg)
     print("[OK] Zipped models at:", zip_file)
 
     if run is not None and wandb is not None:
@@ -176,7 +223,6 @@ def main():
             print(f"[W&B] log failed ({e})", file=sys.stderr)
         finally:
             run.finish()
-
 
 if __name__ == "__main__":
     main()

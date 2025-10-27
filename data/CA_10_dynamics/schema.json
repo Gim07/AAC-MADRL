@@ -90,23 +90,39 @@
       "shared_in_central_agent": true
     },
     "electricity_pricing": {
-      "active": false,
+      "active": true,
       "shared_in_central_agent": true
     },
     "electricity_pricing_predicted_1": {
-      "active": false,
+      "active": true,
       "shared_in_central_agent": true
     },
     "electricity_pricing_predicted_2": {
-      "active": false,
+      "active": true,
       "shared_in_central_agent": true
     },
     "electricity_pricing_predicted_3": {
-      "active": false,
+      "active": true,
+      "shared_in_central_agent": true
+    },
+    "fuel_pricing": {
+      "active": true,
+      "shared_in_central_agent": true
+    },
+    "fuel_pricing_predicted_1": {
+      "active": true,
+      "shared_in_central_agent": true
+    },
+    "fuel_pricing_predicted_2": {
+      "active": true,
+      "shared_in_central_agent": true
+    },
+    "fuel_pricing_predicted_3": {
+      "active": true,
       "shared_in_central_agent": true
     },
     "carbon_intensity": {
-      "active": false,
+      "active": true,
       "shared_in_central_agent": true
     },
     "indoor_dry_bulb_temperature": {
@@ -118,7 +134,7 @@
       "shared_in_central_agent": false
     },
     "indoor_relative_humidity": {
-      "active": true,
+      "active": false,
       "shared_in_central_agent": false
     },
     "non_shiftable_load": {
@@ -126,15 +142,15 @@
       "shared_in_central_agent": false
     },
     "dhw_demand": {
-      "active": false,
+      "active": true,
       "shared_in_central_agent": false
     },
     "cooling_demand": {
-      "active": false,
+      "active": true,
       "shared_in_central_agent": false
     },
     "heating_demand": {
-      "active": false,
+      "active": true,
       "shared_in_central_agent": false
     },
     "solar_generation": {
@@ -146,15 +162,15 @@
       "shared_in_central_agent": false
     },
     "indoor_dry_bulb_temperature_cooling_set_point": {
-      "active": true,
+      "active": false,
       "shared_in_central_agent": false
     },
     "indoor_dry_bulb_temperature_heating_set_point": {
-      "active": true,
+      "active": false,
       "shared_in_central_agent": false
     },
     "comfort_band": {
-      "active": true,
+      "active": false,
       "shared_in_central_agent": false
     },
     "indoor_dry_bulb_temperature_cooling_delta": {
@@ -178,7 +194,7 @@
       "shared_in_central_agent": false
     },
     "heating_storage_soc": {
-      "active": false,
+      "active": true,
       "shared_in_central_agent": false
     },
     "dhw_storage_soc": {
@@ -201,7 +217,15 @@
       "active": true,
       "shared_in_central_agent": false
     },
+    "heating_fuel_consumption": {
+      "active": true,
+      "shared_in_central_agent": false
+    },
     "dhw_electricity_consumption": {
+      "active": true,
+      "shared_in_central_agent": false
+    },
+    "dhw_fuel_consumption": {
       "active": true,
       "shared_in_central_agent": false
     },
@@ -239,7 +263,7 @@
       "active": false
     },
     "heating_storage": {
-      "active": false
+      "active": true
     },
     "dhw_storage": {
       "active": true
@@ -271,8 +295,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-55542.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -285,7 +309,7 @@
         "autosize": true
       },
       "heating_device": {
-        "type": "citylearn.energy_model.HeatPump",
+        "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
       },
       "dhw_device": {
@@ -293,7 +317,10 @@
         "autosize": true
       },
       "cooling_storage": null,
-      "heating_storage": null,
+            "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
       "dhw_storage": null,
       "electrical_storage": {
         "type": "citylearn.energy_model.Battery",
@@ -368,8 +395,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-66099.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -382,7 +409,7 @@
         "autosize": true
       },
       "heating_device": {
-        "type": "citylearn.energy_model.HeatPump",
+        "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
       },
       "dhw_device": {
@@ -390,7 +417,10 @@
         "autosize": true
       },
       "cooling_storage": null,
-      "heating_storage": null,
+      "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
       "dhw_storage": null,
       "electrical_storage": {
         "type": "citylearn.energy_model.Battery",
@@ -465,8 +495,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-66303.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -479,7 +509,7 @@
         "autosize": true
       },
       "heating_device": {
-        "type": "citylearn.energy_model.HeatPump",
+        "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
       },
       "dhw_device": {
@@ -487,7 +517,10 @@
         "autosize": true
       },
       "cooling_storage": null,
-      "heating_storage": null,
+            "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
       "dhw_storage": null,
       "electrical_storage": {
         "type": "citylearn.energy_model.Battery",
@@ -562,8 +595,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-70189.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -576,7 +609,7 @@
         "autosize": true
       },
       "heating_device": {
-        "type": "citylearn.energy_model.HeatPump",
+        "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
       },
       "dhw_device": {
@@ -584,7 +617,10 @@
         "autosize": true
       },
       "cooling_storage": null,
-      "heating_storage": null,
+            "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
       "dhw_storage": null,
       "electrical_storage": {
         "type": "citylearn.energy_model.Battery",
@@ -659,8 +695,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-82426.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -673,7 +709,7 @@
         "autosize": true
       },
       "heating_device": {
-        "type": "citylearn.energy_model.HeatPump",
+        "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
       },
       "dhw_device": {
@@ -681,7 +717,10 @@
         "autosize": true
       },
       "cooling_storage": null,
-      "heating_storage": null,
+            "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
       "dhw_storage": null,
       "electrical_storage": {
         "type": "citylearn.energy_model.Battery",
@@ -756,8 +795,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-9634.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -770,7 +809,7 @@
         "autosize": true
       },
       "heating_device": {
-        "type": "citylearn.energy_model.HeatPump",
+        "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
       },
       "dhw_device": {
@@ -778,7 +817,10 @@
         "autosize": true
       },
       "cooling_storage": null,
-      "heating_storage": null,
+            "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
       "dhw_storage": null,
       "electrical_storage": {
         "type": "citylearn.energy_model.Battery",
@@ -853,8 +895,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-97851.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -867,7 +909,7 @@
         "autosize": true
       },
       "heating_device": {
-        "type": "citylearn.energy_model.HeatPump",
+        "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
       },
       "dhw_device": {
@@ -875,7 +917,10 @@
         "autosize": true
       },
       "cooling_storage": null,
-      "heating_storage": null,
+            "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
       "dhw_storage": null,
       "electrical_storage": {
         "type": "citylearn.energy_model.Battery",
@@ -950,8 +995,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-515536.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -964,7 +1009,7 @@
         "autosize": true
       },
       "heating_device": {
-        "type": "citylearn.energy_model.HeatPump",
+        "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
       },
       "dhw_device": {
@@ -972,7 +1017,10 @@
         "autosize": true
       },
       "cooling_storage": null,
-      "heating_storage": null,
+            "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
       "dhw_storage": null,
       "electrical_storage": {
         "type": "citylearn.energy_model.Battery",
@@ -1047,8 +1095,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-529678.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -1061,7 +1109,7 @@
         "autosize": true
       },
       "heating_device": {
-        "type": "citylearn.energy_model.HeatPump",
+        "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
       },
       "dhw_device": {
@@ -1069,7 +1117,10 @@
         "autosize": true
       },
       "cooling_storage": null,
-      "heating_storage": null,
+            "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
       "dhw_storage": null,
       "electrical_storage": {
         "type": "citylearn.energy_model.Battery",
@@ -1144,8 +1195,8 @@
       "include": true,
       "energy_simulation": "resstock-amy2018-2021-release-1-530480.csv",
       "weather": "weather.csv",
-      "carbon_intensity": null,
-      "pricing": null,
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -1158,7 +1209,7 @@
         "autosize": true
       },
       "heating_device": {
-        "type": "citylearn.energy_model.HeatPump",
+        "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
       },
       "dhw_device": {
@@ -1166,7 +1217,10 @@
         "autosize": true
       },
       "cooling_storage": null,
-      "heating_storage": null,
+            "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
       "dhw_storage": null,
       "electrical_storage": {
         "type": "citylearn.energy_model.Battery",

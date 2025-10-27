@@ -9,9 +9,16 @@ import torch
 
 from citylearn.citylearn import CityLearnEnv
 from citylearn.agents.aac_madrl import AAC_MADRL
-from citylearn.agents.sac import SAC
+# from citylearn.agents.sac import SAC
 from citylearn.agents.marlisa import MARLISA
-from citylearn.agents.rbc import PIDTemperatureController as RBC
+from citylearn.agents.rbc import PITemperatureController as RBC
+
+
+from stable_baselines3 import SAC
+from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.base_class import BaseAlgorithm
+
+from citylearn.wrappers import NormalizedObservationWrapper, StableBaselines3Wrapper
 
 
 # ----------------------------- helpers -----------------------------
@@ -172,7 +179,8 @@ def run_model_and_save_obs(
     dataset_arg = _find_real_schema_for_env(dataset_anchor, outputs_root)
 
     # Env kwargs
-    central = (model_type == "SAC_CENTRALIZED")
+    # central = (model_type == "SAC_CENTRALIZED")
+    central = True
     env_kwargs = {"central_agent": central}
     if sim_start is not None:
         env_kwargs["simulation_start_time_step"] = sim_start
@@ -185,32 +193,74 @@ def run_model_and_save_obs(
         reward_kwargs["gamma"] = gamma
     if reward_kwargs:
         env_kwargs["reward_function_kwargs"] = reward_kwargs
+    try:
+        env_kwargs["SB3"] = True if issubclass(SAC, BaseAlgorithm) else False
+    except TypeError:
+        env_kwargs["SB3"] = False
+
+    sim_period = (env_kwargs.get("simulation_end_time_step", 8760) -
+                  env_kwargs.get("simulation_start_time_step", 0))
+    tot_reward = 0.0
 
     # setta CITYLEARN_DATA_DIR → <project_root>/data (se non presente)
     os.environ.setdefault("CITYLEARN_DATA_DIR", str(outputs_root.parent / "data"))
 
     env = CityLearnEnv(dataset_arg, **env_kwargs)
 
-    # Modello
-    if model_type == "AAC_MADRL":
-        model = AAC_MADRL(env, classes=aac_classes or {}, attend_heads=1, lr=lr, sample=False)
-    elif model_type in ("SAC", "SAC_CENTRALIZED"):
-        model = SAC(env, lr=lr)
-    elif model_type == "MARLISA":
-        model = MARLISA(env, lr=lr)
-    elif model_type == "RBC":
-        model = RBC(env)
+    if env_kwargs['SB3']:
+        env = NormalizedObservationWrapper(env)
+        env = StableBaselines3Wrapper(env)
+
+        env_results = env.unwrapped
+
+        # Verifica compatibilità (opzionale)
+        try:
+            check_env(env)
+            print('[INFO] CityLearn is compatible with SB3 when using the StableBaselines3Wrapper.')
+        except Exception as e:
+            print(f'[WARNING] Environment check failed: {e}')
+
+        if model_type in ("SAC", "SAC_CENTRALIZED"):
+            # Load model from zip
+            model = SAC.load(
+                path=str(derive_weights_zip(dataset_root, model_type, beta, lr, gamma)),
+                env=env
+            )
+
+            # Reset the environment
+            obs, _ = env.reset()
+            for _ in range(sim_period):
+                action, _states = model.predict(obs)
+                obs, reward, dones, _, info = env.step(action)
+            # while not env.done:
+            #     actions, _ = model.predict(obs, deterministic=True)
+            #     obs, reward, _, _ = env.step(actions)
+
+                tot_reward += reward
     else:
-        raise ValueError(f"Invalid model type: {model_type}")
+        # Modello
+        if model_type == "AAC_MADRL":
+            model = AAC_MADRL(env, classes=aac_classes or {}, attend_heads=1, lr=lr, sample=False)
+        elif model_type in ("SAC", "SAC_CENTRALIZED"):
+            model = SAC(env, lr=lr)
+        elif model_type == "MARLISA":
+            model = MARLISA(env, lr=lr)
+        elif model_type == "RBC":
+            model = RBC(env)
+        else:
+            raise ValueError(f"Invalid model type: {model_type}")
 
-    # Carica pesi (se non RBC)
-    if model_type != "RBC":
-        weights_zip = derive_weights_zip(dataset_root, model_type, beta, lr, gamma)
-        print(f"[INFO] Using weights from: {weights_zip}")
-        load_from_zip(model, weights_zip, map_location="cpu", cast_to=None, strict=True)
+        # Carica pesi (se non RBC)
+        if model_type != "RBC":
+            weights_zip = derive_weights_zip(dataset_root, model_type, beta, lr, gamma)
+            print(f"[INFO] Using weights from: {weights_zip}")
+            load_from_zip(model, weights_zip, map_location="cpu", cast_to=None, strict=True)
 
-    # Rollout deterministico
-    model.learn(deterministic=True)
+        # Rollout deterministico
+        model.learn(deterministic=True)
+
+        env_results = model.env
+
 
     # Dove salvare obs
     algo_dir = model_type.lower()
@@ -219,54 +269,57 @@ def run_model_and_save_obs(
     ensure_dir(obs_dir)
 
     # DISTRICT
-    pos_el = np.where(model.env.electrical_storage_electricity_consumption > 0,
-                      model.env.electrical_storage_electricity_consumption, 0)
-    neg_el = np.where(model.env.electrical_storage_electricity_consumption < 0,
-                      model.env.electrical_storage_electricity_consumption, 0)
+    pos_el = np.where(env_results.electrical_storage_electricity_consumption > 0,
+                      env_results.electrical_storage_electricity_consumption, 0)
+    neg_el = np.where(env_results.electrical_storage_electricity_consumption < 0,
+                      env_results.electrical_storage_electricity_consumption, 0)
 
-    pos_dhw = np.where(model.env.dhw_storage_electricity_consumption > 0,
-                       model.env.dhw_storage_electricity_consumption, 0)
-    neg_dhw = np.where(model.env.dhw_storage_electricity_consumption < 0,
-                       model.env.dhw_storage_electricity_consumption, 0)
+    pos_dhw = np.where(env_results.dhw_storage_electricity_consumption > 0,
+                       env_results.dhw_storage_electricity_consumption, 0)
+    neg_dhw = np.where(env_results.dhw_storage_electricity_consumption < 0,
+                       env_results.dhw_storage_electricity_consumption, 0)
 
-    nec = np.array(model.env.net_electricity_consumption)
+    nec = np.array(env_results.net_electricity_consumption)
     pos_nec = np.where(nec > 0, nec, 0)
     neg_nec = np.where(nec < 0, nec, 0)
 
     df_obs_dist = pd.DataFrame({
-        "cooling demand": model.env.cooling_demand,
-        "cooling electricity consumption": model.env.cooling_electricity_consumption,
-        "heating electricity consumption": model.env.heating_electricity_consumption,
-        "dhw demand": model.env.dhw_demand,
-        "dhw electricity consumption": model.env.dhw_electricity_consumption,
-        "dhw storage electricity consumption": model.env.dhw_storage_electricity_consumption,
+        "cooling demand": env_results.cooling_demand,
+        "cooling electricity consumption": env_results.cooling_electricity_consumption,
+        "heating electricity consumption": env_results.heating_electricity_consumption,
+        "dhw demand": env_results.dhw_demand,
+        "dhw electricity consumption": env_results.dhw_electricity_consumption,
+        "dhw storage electricity consumption": env_results.dhw_storage_electricity_consumption,
         "positive dhw storage electricity consumption": pos_dhw,
         "negative dhw storage electricity consumption": neg_dhw,
-        "electrical storage electricity consumption": model.env.electrical_storage_electricity_consumption,
+        "electrical storage electricity consumption": env_results.electrical_storage_electricity_consumption,
         "positive electrical storage electricity consumption": pos_el,
         "negative electrical storage electricity consumption": neg_el,
-        "energy from cooling device": model.env.energy_from_cooling_device,
-        "energy from dhw device": model.env.energy_from_dhw_storage,
-        "energy from dhw device to dhw storage": model.env.energy_from_dhw_device_to_dhw_storage,
-        "energy from dhw storage": model.env.energy_from_dhw_storage,
-        "energy from electrical storage": model.env.energy_from_electrical_storage,
-        "energy from heating device": model.env.energy_from_heating_device,
-        "energy to electrical storage": model.env.energy_to_electrical_storage,
-        "energy to non shiftable load": model.env.energy_to_non_shiftable_load,
-        "net electricity consumption": model.env.net_electricity_consumption,
+        "energy from cooling device": env_results.energy_from_cooling_device,
+        "energy from dhw device": env_results.energy_from_dhw_storage,
+        "energy from dhw device to dhw storage": env_results.energy_from_dhw_device_to_dhw_storage,
+        "energy from dhw storage": env_results.energy_from_dhw_storage,
+        "energy from electrical storage": env_results.energy_from_electrical_storage,
+        "energy from heating device": env_results.energy_from_heating_device,
+        "energy to electrical storage": env_results.energy_to_electrical_storage,
+        "energy to non shiftable load": env_results.energy_to_non_shiftable_load,
+        "net electricity consumption": env_results.net_electricity_consumption,
+        "net fuel consumption": env_results.net_fuel_consumption,
+        "net fuel cost": env_results.net_fuel_consumption_cost,
+        "net fuel emission": env_results.net_fuel_consumption_emission,
         "positive net electricity consumption": pos_nec,
         "negative net electricity consumption": neg_nec,
-        "net electricity consumption without storage": model.env.net_electricity_consumption_without_storage,
-        "net electricity consumption without storage and pv": model.env.net_electricity_consumption_without_storage_and_pv,
-        "net electricity consumption without storage and partial load": model.env.net_electricity_consumption_without_storage_and_partial_load,
-        "net electricity consumption without storage and partial load and pv": model.env.net_electricity_consumption_without_storage_and_partial_load_and_pv,
-        "non shiftable load": model.env.non_shiftable_load,
-        "solar generation": model.env.solar_generation,
+        "net electricity consumption without storage": env_results.net_electricity_consumption_without_storage,
+        "net electricity consumption without storage and pv": env_results.net_electricity_consumption_without_storage_and_pv,
+        "net electricity consumption without storage and partial load": env_results.net_electricity_consumption_without_storage_and_partial_load,
+        "net electricity consumption without storage and partial load and pv": env_results.net_electricity_consumption_without_storage_and_partial_load_and_pv,
+        "non shiftable load": env_results.non_shiftable_load,
+        "solar generation": env_results.solar_generation,
     })
     df_obs_dist.to_csv(obs_dir / "district_obs.csv", index=False)
 
     # PER-BUILDING (tutti gli edifici)
-    for i, b in enumerate(model.env.buildings):
+    for i, b in enumerate(env_results.buildings):
         pos_el_b = np.where(b.electrical_storage_electricity_consumption > 0,
                             b.electrical_storage_electricity_consumption, 0)
         neg_el_b = np.where(b.electrical_storage_electricity_consumption < 0,

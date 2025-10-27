@@ -3,7 +3,7 @@
   "root_directory": null,
   "central_agent": true,
   "simulation_start_time_step": 3624,
-  "simulation_end_time_step": 4343,
+  "simulation_end_time_step": 5087,
   "episode_time_steps": null,
   "rolling_episode_split": false,
   "random_episode_split": false,
@@ -102,6 +102,22 @@
       "shared_in_central_agent": true
     },
     "electricity_pricing_predicted_3": {
+      "active": true,
+      "shared_in_central_agent": true
+    },
+    "fuel_pricing": {
+      "active": true,
+      "shared_in_central_agent": true
+    },
+    "fuel_pricing_predicted_1": {
+      "active": true,
+      "shared_in_central_agent": true
+    },
+    "fuel_pricing_predicted_2": {
+      "active": true,
+      "shared_in_central_agent": true
+    },
+    "fuel_pricing_predicted_3": {
       "active": true,
       "shared_in_central_agent": true
     },
@@ -272,7 +288,7 @@
       "energy_simulation": "resstock-amy2018-2021-release-1-6887.csv",
       "weather": "weather.csv",
       "carbon_intensity": "carbon_intensity.csv",
-      "pricing": "pricing.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [],
       "inactive_actions": [],
       "cooling_device": {
@@ -280,7 +296,7 @@
         "autosize": true
       },
       "heating_device": {
-        "type": "citylearn.energy_model.HeatPump",
+        "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
       },
       "dhw_device": {
@@ -367,7 +383,7 @@
       "energy_simulation": "resstock-amy2018-2021-release-1-15942.csv",
       "weather": "weather.csv",
       "carbon_intensity": "carbon_intensity.csv",
-      "pricing": "pricing.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [],
       "inactive_actions": [],
       "cooling_device": {
@@ -462,7 +478,7 @@
       "energy_simulation": "resstock-amy2018-2021-release-1-20687.csv",
       "weather": "weather.csv",
       "carbon_intensity": "carbon_intensity.csv",
-      "pricing": "pricing.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [],
       "inactive_actions": [],
       "cooling_device": {
@@ -557,7 +573,7 @@
       "energy_simulation": "resstock-amy2018-2021-release-1-21356.csv",
       "weather": "weather.csv",
       "carbon_intensity": "carbon_intensity.csv",
-      "pricing": "pricing.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [],
       "inactive_actions": [],
       "cooling_device": {
@@ -652,7 +668,7 @@
       "energy_simulation": "resstock-amy2018-2021-release-1-36456.csv",
       "weather": "weather.csv",
       "carbon_intensity": "carbon_intensity.csv",
-      "pricing": "pricing.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -749,7 +765,7 @@
       "energy_simulation": "resstock-amy2018-2021-release-1-43845.csv",
       "weather": "weather.csv",
       "carbon_intensity": "carbon_intensity.csv",
-      "pricing": "pricing.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [],
       "inactive_actions": [],
       "cooling_device": {
@@ -844,7 +860,7 @@
       "energy_simulation": "resstock-amy2018-2021-release-1-46421.csv",
       "weather": "weather.csv",
       "carbon_intensity": "carbon_intensity.csv",
-      "pricing": "pricing.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -941,7 +957,7 @@
       "energy_simulation": "resstock-amy2018-2021-release-1-50879.csv",
       "weather": "weather.csv",
       "carbon_intensity": "carbon_intensity.csv",
-      "pricing": "pricing.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -1038,7 +1054,7 @@
       "energy_simulation": "resstock-amy2018-2021-release-1-63192.csv",
       "weather": "weather.csv",
       "carbon_intensity": "carbon_intensity.csv",
-      "pricing": "pricing.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
@@ -1135,7 +1151,7 @@
       "energy_simulation": "resstock-amy2018-2021-release-1-68142.csv",
       "weather": "weather.csv",
       "carbon_intensity": "carbon_intensity.csv",
-      "pricing": "pricing.csv",
+      "pricing": "pricing_2023.csv",
       "inactive_observations": [
         "dhw_storage_soc",
         "dhw_storage_electricity_consumption"
