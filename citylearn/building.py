@@ -1659,7 +1659,7 @@ class Building(Environment):
                 low_limit[key] = -self.electrical_storage.nominal_power
                 high_limit[key] = self.electrical_storage.nominal_power
 
-                # AGGIUNGI QUESTI NUOVI BLOCCHI
+            # AGGIUNGI QUESTI NUOVI BLOCCHI
             elif key == 'net_fuel_consumption':
                 low_limit[key] = 0.0
                 high_limit_heating = self.heating_device.nominal_power if isinstance(self.heating_device,
@@ -2306,10 +2306,10 @@ class Building(Environment):
         try:
             fuel_carbon = self.carbon_intensity.fuel_carbon_intensity[self.time_step]
         except AttributeError:
-            fuel_carbon = 0.0  # Valore di default se non implementato
+            fuel_carbon = 1.95 / (13.889 * 0.671)  # kg_co2/kWh per default per gas naturale
 
         self.__net_fuel_consumption_cost[self.time_step] = net_fuel_consumption * fuel_price
-        self.__net_fuel_consumption_emission[self.time_step] = max(0.0, net_fuel_consumption * fuel_carbon)
+        self.__net_fuel_consumption_emission[self.time_step] = max(0.0, net_fuel_consumption * fuel_carbon * self.seconds_per_time_step/3600)
         # FINE AGGIUNTA
 
 class DynamicsBuilding(Building):
