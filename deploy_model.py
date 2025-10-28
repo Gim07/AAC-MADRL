@@ -368,6 +368,7 @@ def run_model_and_save_obs(
             "net electricity consumption without storage and pv": b.net_electricity_consumption_without_storage_and_pv,
             "non shiftable load": b.non_shiftable_load,
             "solar generation": b.solar_generation,
+            "outdoor_temperature": b.weather.outdoor_dry_bulb_temperature,
             "indoor_temperature": b.indoor_dry_bulb_temperature,
             "heating_sp": b.indoor_dry_bulb_temperature_heating_set_point,
             "cooling_sp": b.indoor_dry_bulb_temperature_cooling_set_point,

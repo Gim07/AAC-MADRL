@@ -60,7 +60,7 @@ ROW_HEIGHT = 3.1
 # Colonne attese
 CAND_COLS = {
     "tin": ["indoor_temperature"],
-    "tout": ["outdoor_dry_bulb_temperature"],
+    "tout": ["outdoor_dry_bulb_temperature", "outdoor_temperature"],
     "sp": ["cooling_sp", "cooling_setpoint", "setpoint"],
     "band": ["comfort_band"],
     # NEW:
