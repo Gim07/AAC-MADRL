@@ -58,6 +58,7 @@ def parse_args():
     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # NUOVE OPZIONI: classi richieste dal modello
     p.add_argument("--dhw-storage", default=21, type=int, help="Numero di classi per azione DHW storage.")
+    p.add_argument("--heating-storage", default=21, type=int, help="Numero di classi per azione heating storage.")
     p.add_argument("--electrical-storage", default=21, type=int, help="Numero di classi per azione electrical storage.")
     p.add_argument("--cooling-or-heating-device", default=21, type=int, help="Numero di classi per azione cooling/heating device.")
     p.add_argument("--cooling-device", default=11, type=int, help="Numero di classi per azione cooling device.")
@@ -134,6 +135,7 @@ def main():
     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     # Costruisci il dizionario delle classi da passare al modello
     classes = {
+        "heating_storage": args.heating_storage,
         "dhw_storage": args.dhw_storage,
         "electrical_storage": args.electrical_storage,
         "cooling_or_heating_device": args.cooling_or_heating_device,

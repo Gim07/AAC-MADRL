@@ -49,10 +49,13 @@ def parse_args():
         help=("Nome dataset CityLearn oppure path/cartella o solo NOME locale (risolto a .../schema.json). "
               "Default: data/schema.json."),
     )
-    p.add_argument("--central-agent", action="store_true", help="Usa un agente centrale.")
+    p.add_argument("--central-agent", default=True, type=bool, help="Usa un agente centrale.")
     p.add_argument("--episodes", default=12, type=int, help="Episodi di training.")
     p.add_argument("--lr", default=3e-4, type=float, help="Learning rate.")
+    p.add_argument("--batch_size", default=256, type=int, help="Batch size.")
+    p.add_argument("--hidden-dimension", default=[256, 256], help="Hidden dimension.")
     p.add_argument("--beta", default=0.0, type=float, help="Valore beta (tenuto nei config/W&B).")
+    p.add_argument("--gamma", default=1, type=float, help="Valore gamma (tenuto nei config/W&B).")
 
     p.add_argument(
         "--output-root",
@@ -128,7 +131,10 @@ def main():
         "central_agent": args.central_agent,
         "episodes": args.episodes,
         "lr": args.lr,
+        "batch_size": args.batch_size,
+        "hidden_dimension": args.hidden_dimension,
         "beta": args.beta,
+        "gamma": args.gamma,
         "output_root": str(output_root),
         "zip_path": str(zip_file),
         "data_dir": str(args.data_dir),
@@ -147,6 +153,16 @@ def main():
         env_kwargs["simulation_start_time_step"] = args.sim_start
     if args.sim_end is not None:
         env_kwargs["simulation_end_time_step"] = args.sim_end
+
+    reward_kwargs = {}
+    if args.beta is not None:
+        reward_kwargs["beta"] = args.beta
+    if args.gamma is not None:
+        reward_kwargs["gamma"] = args.gamma
+
+    # Passa le kwargs alla reward SOLO una volta
+    if reward_kwargs:
+        env_kwargs["reward_function_kwargs"] = reward_kwargs
 
     env = CityLearnEnv(dataset_arg, **env_kwargs)
     model = RLAgent(env, lr=args.lr)
