@@ -286,7 +286,7 @@
     "attributes": null
   },
   "reward_function": {
-    "type": "citylearn.reward_function.RewardFunction",
+    "type": "citylearn.custom_reward.ComfortConsumptionDistrictRewardFixed",
     "attributes": null
   },
   "buildings": {

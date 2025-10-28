@@ -20,7 +20,7 @@ ALGOS = [
     # 'GB_PID_RBC',
     'SAC'
 ]  # <-- Indoor T con colori diversi + legenda
-district = 'CA'
+district = 'VT'
 dataset_key = f"{district}_{N_BUILDINGS}_dynamics"
 beta = 0.5
 gamma = 3.5
@@ -60,12 +60,14 @@ ROW_HEIGHT = 3.1
 # Colonne attese
 CAND_COLS = {
     "tin": ["indoor_temperature"],
+    "tout": ["outdoor_dry_bulb_temperature"],
     "sp": ["cooling_sp", "cooling_setpoint", "setpoint"],
     "band": ["comfort_band"],
     # NEW:
     "cool_demand": ["cooling demand", "cooling_demand", "cool_dmd", "cooling_power", "cooling_energy"],
     "heat_demand": ["heating demand", "heating_demand", "heat_demand", "heating_power", "heating_energy"],
 }
+
 
 # -------------------- UTILS --------------------
 def find_first_existing(patterns: List[str], i: int) -> Optional[Path]:
@@ -74,6 +76,7 @@ def find_first_existing(patterns: List[str], i: int) -> Optional[Path]:
         if p.exists():
             return p
     return None
+
 
 def find_col(df: pd.DataFrame, candidates: List[str]) -> Optional[str]:
     for c in candidates:
@@ -85,6 +88,7 @@ def find_col(df: pd.DataFrame, candidates: List[str]) -> Optional[str]:
         if key in low:
             return low[key]
     return None
+
 
 def load_building_algo(i: int, algo: str) -> Optional[pd.DataFrame]:
     fp = find_first_existing(ALGO_PATTERNS[algo], i)
@@ -101,28 +105,31 @@ def load_building_algo(i: int, algo: str) -> Optional[pd.DataFrame]:
     df = df.copy()
     df.index = idx
 
-    col_tin  = find_col(df, CAND_COLS["tin"])
-    col_sp   = find_col(df, CAND_COLS["sp"])
-    col_bd   = find_col(df, CAND_COLS["band"])
+    col_tin = find_col(df, CAND_COLS["tin"])
+    col_sp = find_col(df, CAND_COLS["sp"])
+    col_bd = find_col(df, CAND_COLS["band"])
     col_cool = find_col(df, CAND_COLS["cool_demand"])
     col_heat = find_col(df, CAND_COLS["heat_demand"])
+    col_tout = find_col(df, CAND_COLS["tout"])  # <-- MODIFICA 1: Trova colonna T_out
 
     out = pd.DataFrame(index=df.index)
-    if col_tin:  out["T_in"] = pd.to_numeric(df[col_tin],  errors="coerce")
+    if col_tin:  out["T_in"] = pd.to_numeric(df[col_tin], errors="coerce")
     if col_sp:   out["Setpoint"] = pd.to_numeric(df[col_sp], errors="coerce")
     if col_bd:   out["Comfort_Band"] = pd.to_numeric(df[col_bd], errors="coerce")
     if col_cool: out["Cooling_Demand"] = pd.to_numeric(df[col_cool], errors="coerce").clip(lower=0)
     if col_heat: out["Heating_Demand"] = pd.to_numeric(df[col_heat], errors="coerce").clip(lower=0)
+    if col_tout: out["T_out"] = pd.to_numeric(df[col_tout], errors="coerce")  # <-- MODIFICA 2: Aggiungi T_out al df
 
     # bounds (band = semi-ampiezza)
     if "Setpoint" in out.columns and "Comfort_Band" in out.columns:
-        out["Comfort_Low"]  = out["Setpoint"] - out["Comfort_Band"]
+        out["Comfort_Low"] = out["Setpoint"] - out["Comfort_Band"]
         out["Comfort_High"] = out["Setpoint"] + out["Comfort_Band"]
 
     if out.dropna(how="all").empty:
         print(f"[MISS] {algo} b{i}: nessuna colonna utile")
         return None
     return out
+
 
 def gather_all() -> Dict[int, Dict[str, Optional[pd.DataFrame]]]:
     all_data: Dict[int, Dict[str, Optional[pd.DataFrame]]] = {}
@@ -138,6 +145,7 @@ def gather_all() -> Dict[int, Dict[str, Optional[pd.DataFrame]]]:
         raise RuntimeError("Nessun file trovato (controlla i path in ALGO_PATTERNS).")
     return all_data
 
+
 def month_week_ranges(month_start: pd.Timestamp) -> List[Tuple[pd.Timestamp, pd.Timestamp]]:
     """Finestre (start, end-excl) di 7 giorni per il mese di month_start."""
     month_start = month_start.normalize().replace(day=1)
@@ -149,6 +157,7 @@ def month_week_ranges(month_start: pd.Timestamp) -> List[Tuple[pd.Timestamp, pd.
         ranges.append((s, e))
         s = e
     return ranges
+
 
 def _bin_means(x: pd.Series, y: pd.Series, binsize: float = 0.25) -> Tuple[np.ndarray, np.ndarray]:
     """Ritorna (centers, mean_y) su bin uniformi della temperatura."""
@@ -220,6 +229,10 @@ def plot_demand_vs_temperature(
             ax_temp.sharex(ax_demand)
             ax_temp.tick_params(labelbottom=False)
 
+            # legenda per questo building
+            temp_handles = []  # <-- MODIFICA 3: Spostato 'temp_handles' qui
+            demand_handles = []
+
             # opzionale: comfort band e setpoint
             if include_comfort:
                 ref_df = None
@@ -239,9 +252,14 @@ def plot_demand_vs_temperature(
                         ax_temp.plot(ref_df.index, ref_df["Setpoint"], linewidth=1.0, linestyle=sp_style,
                                      color="black", alpha=0.9, zorder=2)
 
-            # legenda per questo building
-            temp_handles = []
-            demand_handles = []
+                    # <-- MODIFICA 4: Aggiungi plot T_out e handle legenda -->
+                    if "T_out" in ref_df.columns and not ref_df["T_out"].isna().all():
+                        line_tout, = ax_temp.plot(ref_df.index, ref_df["T_out"],
+                                                  linewidth=1.2, linestyle=':',
+                                                  color="gray", alpha=0.9,
+                                                  zorder=2, label="T_out")
+                        temp_handles.append(line_tout)
+                    # <-- Fine MODIFICA 4 -->
 
             # serie temporali per ciascun algoritmo
             for algo in ALGOS:
@@ -430,7 +448,7 @@ def plot_temperature_vs_net_demand_fullperiod(all_data, save=True, binsize=0.5):
         algo_colors[algo] = palette[ALGOS.index(algo)]
 
     fig, axes = plt.subplots(rows, COLS, figsize=(FIGWIDTH, figheight), squeeze=False, sharex=False)
-    legend_handles = [Line2D([0],[0], marker='o', linestyle='None', color=algo_colors[a], label=a) for a in ALGOS]
+    legend_handles = [Line2D([0], [0], marker='o', linestyle='None', color=algo_colors[a], label=a) for a in ALGOS]
 
     for idx, bid in enumerate(present_buildings):
         r, c = divmod(idx, COLS)
@@ -484,6 +502,7 @@ def plot_temperature_vs_net_demand_fullperiod(all_data, save=True, binsize=0.5):
     plt.close(fig)
     return out
 
+
 # -------------------- PLOT SETTIMANALE --------------------
 
 def plot_week_overlay(all_data, week_start, week_end, save=True):
@@ -503,9 +522,8 @@ def plot_week_overlay(all_data, week_start, week_end, save=True):
     for algo in ALGOS:
         algo_colors[algo] = palette[ALGOS.index(algo)]
 
-    sp_style = (0, (5, 3))     # setpoint: dashed nero
+    sp_style = (0, (5, 3))  # setpoint: dashed nero
     band_yellow = "#fff3b0"
-
 
     legend_handles = [Line2D([0], [0], color=algo_colors[algo], linewidth=1.0, label=algo) for algo in ALGOS]
 
@@ -578,6 +596,7 @@ def plot_week_overlay(all_data, week_start, week_end, save=True):
     plt.close(fig)
     return out_path
 
+
 # -------------------- DRIVER: plotti tutte le settimane del mese --------------------
 def plot_all_weeks_of_month():
     all_data = gather_all()
@@ -589,6 +608,7 @@ def plot_all_weeks_of_month():
         p = plot_week_overlay(all_data, ws, we, save=True)
         outputs.append(p)
     return outputs
+
 
 def plot_all_weeks_of_month_demand_lines(include_comfort=False):
     all_data = gather_all()
@@ -602,9 +622,11 @@ def plot_all_weeks_of_month_demand_lines(include_comfort=False):
         outs.append(p)
     return outs
 
+
 def plot_fullperiod_net_demand_scatter(binsize=0.5):
     all_data = gather_all()
     return plot_temperature_vs_net_demand_fullperiod(all_data, save=True, binsize=binsize)
+
 
 if __name__ == "__main__":
     plot_all_weeks_of_month()
@@ -614,6 +636,3 @@ if __name__ == "__main__":
 
     # nuovo scatter T_in vs (Heating − Cooling) sull'intero periodo
     plot_fullperiod_net_demand_scatter(binsize=0.5)
-
-
-
