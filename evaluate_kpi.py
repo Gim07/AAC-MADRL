@@ -14,14 +14,14 @@ ALGO_DIR = {
     # "GB_PID_RBC": "GB_PID_rbc",
 }
 
-def find_obs_csv(outputs_root: Path, dataset_key: str, algorithm: str, beta: float, lr: float, gamma: float, season: str) -> Path:
+def find_obs_csv(outputs_root: Path, dataset_key: str, algorithm: str, beta: float, lr: float, gamma: float) -> Path:
     """
     Trova district_obs.csv nel layout nuovo (beta=..._gamma=.../lr=...) con fallback al layout vecchio (beta=.../lr=...).
     Struttura base: <outputs_root>/<dataset_key>/schema.json/obs/<algo_dir>/...
     """
     algo = algorithm.upper()
     algo_dir = ALGO_DIR.get(algo, algo.lower())
-    base = outputs_root / dataset_key / "schema.json" / "obs" / season / algo_dir
+    base = outputs_root / dataset_key / "schema.json" / "obs" / algo_dir
 
     if "RBC" in algo:
         candidates = [base / "district_obs.csv"]
@@ -171,10 +171,10 @@ def mean_comfort_violation_for_folder(obs_folder: Path) -> Tuple[float, float, f
 
 # ---------- KPI core ----------
 
-def process_kpi(outputs_root: Path, dataset_key: str, algorithm: str, kpi_dir: Path, lr: float, beta: float, gamma: float, season: str) -> Tuple[pd.DataFrame, pd.DataFrame, Path]:
+def process_kpi(outputs_root: Path, dataset_key: str, algorithm: str, kpi_dir: Path, lr: float, beta: float, gamma: float) -> Tuple[pd.DataFrame, pd.DataFrame, Path]:
     """Reads district_obs.csv and updates/saves the algorithm's KPI file (CSV)."""
     try:
-        obs_csv = find_obs_csv(outputs_root, dataset_key, algorithm, beta, lr, gamma, season)
+        obs_csv = find_obs_csv(outputs_root, dataset_key, algorithm, beta, lr, gamma)
         df_obs = pd.read_csv(obs_csv)
     except FileNotFoundError as e:
         print(f"[ERROR] {e}")
@@ -322,7 +322,7 @@ if __name__ == "__main__":
         # Process each algorithm and store results
         for algo in control_algorithms:
             print(f"Processing {algo}...")
-            df_obs, df_kpi, kpi_file = process_kpi(outputs_root, dataset_key, algo, kpi_dir, learning_rate, beta, gamma, season)
+            df_obs, df_kpi, kpi_file = process_kpi(outputs_root, dataset_key, algo, kpi_dir, learning_rate, beta, gamma)
             df_obs_dict[algo] = df_obs
             df_kpi_dict[algo] = df_kpi
             kpi_file_dict[algo] = kpi_file

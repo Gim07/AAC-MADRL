@@ -9,12 +9,12 @@ import torch
 
 from citylearn.citylearn import CityLearnEnv
 from citylearn.agents.aac_madrl import AAC_MADRL
-# from citylearn.agents.sac import SAC
+from citylearn.agents.sac import SAC
 from citylearn.agents.marlisa import MARLISA
 from citylearn.agents.rbc import PITemperatureController as RBC
 
 
-from stable_baselines3 import SAC
+# from stable_baselines3 import SAC
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.base_class import BaseAlgorithm
 

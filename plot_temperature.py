@@ -12,7 +12,7 @@ from matplotlib.ticker import MaxNLocator
 
 # -------------------- CONFIG --------------------
 DATA_DIR = Path.cwd()
-N_BUILDINGS = 10
+N_BUILDINGS = 20
 ALGOS = [
     # 'P_RBC',
     'PI_RBC',
@@ -30,19 +30,19 @@ season = 'winter'
 # Pattern cartelle (aggiungi/varia se necessario)
 ALGO_PATTERNS: Dict[str, List[str]] = {
     'P_RBC': [
-        f"outputs/data/{dataset_key}/schema.json/obs/{season}/P_rbc/obs_building" + "_{i}.csv",
+        f"outputs/data/{dataset_key}/schema.json/obs/P_rbc/obs_building" + "_{i}.csv",
     ],
     'PI_RBC': [
-        f"outputs/data/{dataset_key}/schema.json/obs/{season}/PI_rbc/obs_building" + "_{i}.csv",
+        f"outputs/data/{dataset_key}/schema.json/obs/PI_rbc/obs_building" + "_{i}.csv",
     ],
     'PID_RBC': [
-        f"outputs/data/{dataset_key}/schema.json/obs/{season}/PID_rbc/obs_building" + "_{i}.csv",
+        f"outputs/data/{dataset_key}/schema.json/obs/PID_rbc/obs_building" + "_{i}.csv",
     ],
     'GB_PID_RBC': [
-        f"outputs/data/{dataset_key}/schema.json/obs/{season}/GB_PID_rbc/obs_building" + "_{i}.csv",
+        f"outputs/data/{dataset_key}/schema.json/obs/GB_PID_rbc/obs_building" + "_{i}.csv",
     ],
     'SAC': [
-        f"outputs/data/{dataset_key}/schema.json/obs/{season}/sac/beta={beta}_gamma={gamma}/lr={lr}/obs_building" + "_{i}.csv",
+        f"outputs/data/{dataset_key}/schema.json/obs/sac/beta={beta}_gamma={gamma}/lr={lr}/obs_building" + "_{i}.csv",
     ],
     # 'AAC-MADRL': [
     #     f"outputs/data/{dataset_key}/obs/aac_madrl/beta={beta}_gamma={gamma}/lr={lr}/obs_building" + "_{i}.csv",
