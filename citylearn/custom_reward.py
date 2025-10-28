@@ -47,7 +47,9 @@ class ComfortConsumptionDistrictRewardFixed(RewardFunction):
             return -(delta ** 2)
 
     def calculate(self, observations: List[Mapping[str, Union[int, float]]]) -> List[float]:
-        nets = [float(o['net_electricity_consumption']) for o in observations]
+        nets_el = [float(o['net_electricity_consumption']) for o in observations]
+        nets_fuel = [float(o['net_fuel_consumption']) for o in observations]
+        nets = [nets_el[i] + nets_fuel[i] for i in range(len(observations))]
 
         comforts = [self._comfort_term(o) for o in observations]
         consumptions = [min(((-1.0) * net) ** 3, 0.0) for net in nets]
