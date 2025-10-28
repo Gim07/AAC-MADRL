@@ -306,7 +306,7 @@
       ],
       "cooling_device": null,
       "heating_device": {
-        "type": "citylearn.energy_model.GasBoiler",
+        "type": "citylearn.energy_model.HeatPump",
         "autosize": true
       },
       "dhw_device": {
@@ -403,7 +403,7 @@
       ],
       "cooling_device": null,
       "heating_device": {
-        "type": "citylearn.energy_model.GasBoiler",
+        "type": "citylearn.energy_model.HeatPump",
         "autosize": true
       },
       "dhw_device": {
@@ -500,7 +500,7 @@
       ],
       "cooling_device": null,
       "heating_device": {
-        "type": "citylearn.energy_model.GasBoiler",
+        "type": "citylearn.energy_model.HeatPump",
         "autosize": true
       },
       "dhw_device": {
@@ -592,7 +592,7 @@
       "inactive_actions": [],
       "cooling_device": null,
       "heating_device": {
-        "type": "citylearn.energy_model.GasBoiler",
+        "type": "citylearn.energy_model.HeatPump",
         "autosize": true
       },
       "dhw_device": {
@@ -692,7 +692,7 @@
       ],
       "cooling_device": null,
       "heating_device": {
-        "type": "citylearn.energy_model.GasBoiler",
+        "type": "citylearn.energy_model.HeatPump",
         "autosize": true
       },
       "dhw_device": {
@@ -789,7 +789,7 @@
       ],
       "cooling_device": null,
       "heating_device": {
-        "type": "citylearn.energy_model.GasBoiler",
+        "type": "citylearn.energy_model.HeatPump",
         "autosize": true
       },
       "dhw_device": {
@@ -886,7 +886,7 @@
       ],
       "cooling_device": null,
       "heating_device": {
-        "type": "citylearn.energy_model.GasBoiler",
+        "type": "citylearn.energy_model.HeatPump",
         "autosize": true
       },
       "dhw_device": {
@@ -983,7 +983,7 @@
       ],
       "cooling_device": null,
       "heating_device": {
-        "type": "citylearn.energy_model.GasBoiler",
+        "type": "citylearn.energy_model.HeatPump",
         "autosize": true
       },
       "dhw_device": {
@@ -1080,7 +1080,7 @@
       ],
       "cooling_device": null,
       "heating_device": {
-        "type": "citylearn.energy_model.GasBoiler",
+        "type": "citylearn.energy_model.HeatPump",
         "autosize": true
       },
       "dhw_device": {
@@ -1177,7 +1177,7 @@
       ],
       "cooling_device": null,
       "heating_device": {
-        "type": "citylearn.energy_model.GasBoiler",
+        "type": "citylearn.energy_model.HeatPump",
         "autosize": true
       },
       "dhw_device": {

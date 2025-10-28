@@ -15,14 +15,14 @@ DATA_DIR = Path.cwd()
 N_BUILDINGS = 10
 ALGOS = [
     # 'P_RBC',
-    # 'PI_RBC',
+    'PI_RBC',
     # 'PID_RBC',
     # 'GB_PID_RBC',
     'SAC'
 ]  # <-- Indoor T con colori diversi + legenda
-district = 'VT'
+district = 'CA'
 dataset_key = f"{district}_{N_BUILDINGS}_dynamics"
-beta = 0.5
+beta = 0.2
 gamma = 3.5
 lr = 0.0003
 season = 'winter'
@@ -110,7 +110,7 @@ def load_building_algo(i: int, algo: str) -> Optional[pd.DataFrame]:
     col_bd = find_col(df, CAND_COLS["band"])
     col_cool = find_col(df, CAND_COLS["cool_demand"])
     col_heat = find_col(df, CAND_COLS["heat_demand"])
-    col_tout = find_col(df, CAND_COLS["tout"])  # <-- MODIFICA 1: Trova colonna T_out
+    col_tout = find_col(df, CAND_COLS["tout"])
 
     out = pd.DataFrame(index=df.index)
     if col_tin:  out["T_in"] = pd.to_numeric(df[col_tin], errors="coerce")
@@ -118,7 +118,8 @@ def load_building_algo(i: int, algo: str) -> Optional[pd.DataFrame]:
     if col_bd:   out["Comfort_Band"] = pd.to_numeric(df[col_bd], errors="coerce")
     if col_cool: out["Cooling_Demand"] = pd.to_numeric(df[col_cool], errors="coerce").clip(lower=0)
     if col_heat: out["Heating_Demand"] = pd.to_numeric(df[col_heat], errors="coerce").clip(lower=0)
-    if col_tout: out["T_out"] = pd.to_numeric(df[col_tout], errors="coerce")  # <-- MODIFICA 2: Aggiungi T_out al df
+    if col_tout: out["T_out"] = pd.to_numeric(df[col_tout],
+                                              errors="coerce")  # <-- Carichiamo T_out (necessario per plot_week_overlay)
 
     # bounds (band = semi-ampiezza)
     if "Setpoint" in out.columns and "Comfort_Band" in out.columns:
@@ -230,7 +231,7 @@ def plot_demand_vs_temperature(
             ax_temp.tick_params(labelbottom=False)
 
             # legenda per questo building
-            temp_handles = []  # <-- MODIFICA 3: Spostato 'temp_handles' qui
+            temp_handles = []
             demand_handles = []
 
             # opzionale: comfort band e setpoint
@@ -252,14 +253,7 @@ def plot_demand_vs_temperature(
                         ax_temp.plot(ref_df.index, ref_df["Setpoint"], linewidth=1.0, linestyle=sp_style,
                                      color="black", alpha=0.9, zorder=2)
 
-                    # <-- MODIFICA 4: Aggiungi plot T_out e handle legenda -->
-                    if "T_out" in ref_df.columns and not ref_df["T_out"].isna().all():
-                        line_tout, = ax_temp.plot(ref_df.index, ref_df["T_out"],
-                                                  linewidth=1.2, linestyle=':',
-                                                  color="gray", alpha=0.9,
-                                                  zorder=2, label="T_out")
-                        temp_handles.append(line_tout)
-                    # <-- Fine MODIFICA 4 -->
+                    # <-- MODIFICA: Rimosso plot T_out da qui -->
 
             # serie temporali per ciascun algoritmo
             for algo in ALGOS:
@@ -525,7 +519,12 @@ def plot_week_overlay(all_data, week_start, week_end, save=True):
     sp_style = (0, (5, 3))  # setpoint: dashed nero
     band_yellow = "#fff3b0"
 
+    # --- MODIFICA 1: Aggiungi T_out alla lista per la legenda ---
     legend_handles = [Line2D([0], [0], color=algo_colors[algo], linewidth=1.0, label=algo) for algo in ALGOS]
+    legend_handles.append(
+        Line2D([0], [0], color="gray", linewidth=1.2, linestyle=':', label="T_out")
+    )
+    # --- Fine MODIFICA 1 ---
 
     for idx, bid in enumerate(present_buildings):
         r, c = divmod(idx, COLS)
@@ -548,6 +547,14 @@ def plot_week_overlay(all_data, week_start, week_end, save=True):
             if "Setpoint" in ref_df.columns and not ref_df["Setpoint"].isna().all():
                 ax.plot(ref_df.index, ref_df["Setpoint"], linewidth=1.0, linestyle=sp_style,
                         color="black", alpha=0.95, zorder=3)
+
+            # --- MODIFICA 2: Plotta T_out dal ref_df ---
+            if "T_out" in ref_df.columns and not ref_df["T_out"].isna().all():
+                ax.plot(ref_df.index, ref_df["T_out"],
+                        linewidth=1.2, linestyle=':',
+                        color="gray", alpha=0.9,
+                        zorder=2)  # zorder=2 la mette dietro T_in e Setpoint
+            # --- Fine MODIFICA 2 ---
 
         # indoor temperature di tutti gli algoritmi con colori diversi
         for algo in ALGOS:
@@ -575,7 +582,7 @@ def plot_week_overlay(all_data, week_start, week_end, save=True):
 
     # >>> LEGENDA NEL PRIMO PANNELLO (sempre visibile)
     ax0 = axes[0][0]
-    leg = ax0.legend(legend_handles, [h.get_label() for h in legend_handles],
+    leg = ax0.legend(handles=legend_handles, labels=[h.get_label() for h in legend_handles],
                      loc="upper left", frameon=True, framealpha=0.85,
                      facecolor="white", edgecolor="none", fontsize=9)
     leg.set_zorder(10)  # porta la legenda davanti a tutto

@@ -54,15 +54,15 @@
       "shared_in_central_agent": true
     },
     "outdoor_relative_humidity_predicted_1": {
-      "active": true,
+      "active": false,
       "shared_in_central_agent": true
     },
     "outdoor_relative_humidity_predicted_2": {
-      "active": true,
+      "active": false,
       "shared_in_central_agent": true
     },
     "outdoor_relative_humidity_predicted_3": {
-      "active": true,
+      "active": false,
       "shared_in_central_agent": true
     },
     "diffuse_solar_irradiance_predicted_1": {
@@ -289,7 +289,1307 @@
     "type": "citylearn.custom_reward.ComfortConsumptionDistrictRewardFixed",
     "attributes": null
   },
-  "buildings": {
+    "buildings": {
+    "resstock-amy2018-2021-release-1-185734": {
+      "type": "citylearn.building.LSTMDynamicsBuilding",
+      "include": true,
+      "energy_simulation": "resstock-amy2018-2021-release-1-185734.csv",
+      "weather": "weather.csv",
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
+      "inactive_observations": [
+        "dhw_storage_soc",
+        "dhw_storage_electricity_consumption"
+      ],
+      "inactive_actions": [
+        "dhw_storage"
+      ],
+      "cooling_device": {
+        "type": "citylearn.energy_model.HeatPump",
+        "autosize": true
+      },
+      "heating_device": {
+        "type": "citylearn.energy_model.GasBoiler",
+        "autosize": true
+      },
+      "dhw_device": {
+        "type": "citylearn.energy_model.ElectricHeater",
+        "autosize": true
+      },
+      "cooling_storage": null,
+      "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
+      "dhw_storage": null,
+      "electrical_storage": {
+        "type": "citylearn.energy_model.Battery",
+        "autosize": true
+      },
+      "pv": {
+        "type": "citylearn.energy_model.PV",
+        "autosize": true,
+        "autosize_attributes": {
+          "epw_filepath": "weather.epw",
+          "roof_area": 126.71988278139312
+        }
+      },
+      "dynamics": {
+        "type": "citylearn.dynamics.LSTMDynamics",
+        "attributes": {
+          "input_size": null,
+          "hidden_size": 8,
+          "num_layers": 2,
+          "lookback": 13,
+          "filename": "resstock-amy2018-2021-release-1-185734.pth",
+          "input_normalization_minimum": [
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            9.0
+          ],
+          "input_normalization_maximum": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            15.0,
+            15.0,
+            1007.5,
+            465.5,
+            28.9,
+            4.0,
+            35.0
+          ],
+          "input_observation_names": [
+            "month_sin",
+            "month_cos",
+            "day_type_sin",
+            "day_type_cos",
+            "hour_sin",
+            "hour_cos",
+            "cooling_demand",
+            "heating_demand",
+            "direct_solar_irradiance",
+            "diffuse_solar_irradiance",
+            "outdoor_dry_bulb_temperature",
+            "occupant_count",
+            "indoor_dry_bulb_temperature"
+          ]
+        }
+      }
+    },
+    "resstock-amy2018-2021-release-1-230010": {
+      "type": "citylearn.building.LSTMDynamicsBuilding",
+      "include": true,
+      "energy_simulation": "resstock-amy2018-2021-release-1-230010.csv",
+      "weather": "weather.csv",
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
+      "inactive_observations": [
+        "dhw_storage_soc",
+        "dhw_storage_electricity_consumption"
+      ],
+      "inactive_actions": [
+        "dhw_storage"
+      ],
+      "cooling_device": {
+        "type": "citylearn.energy_model.HeatPump",
+        "autosize": true
+      },
+      "heating_device": {
+        "type": "citylearn.energy_model.GasBoiler",
+        "autosize": true
+      },
+      "dhw_device": {
+        "type": "citylearn.energy_model.ElectricHeater",
+        "autosize": true
+      },
+      "cooling_storage": null,
+      "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
+      "dhw_storage": null,
+      "electrical_storage": {
+        "type": "citylearn.energy_model.Battery",
+        "autosize": true
+      },
+      "pv": {
+        "type": "citylearn.energy_model.PV",
+        "autosize": true,
+        "autosize_attributes": {
+          "epw_filepath": "weather.epw",
+          "roof_area": 126.71988278139312
+        }
+      },
+      "dynamics": {
+        "type": "citylearn.dynamics.LSTMDynamics",
+        "attributes": {
+          "input_size": null,
+          "hidden_size": 8,
+          "num_layers": 2,
+          "lookback": 13,
+          "filename": "resstock-amy2018-2021-release-1-230010.pth",
+          "input_normalization_minimum": [
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            9.0
+          ],
+          "input_normalization_maximum": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            15.0,
+            15.0,
+            1007.5,
+            465.5,
+            28.9,
+            4.0,
+            35.0
+          ],
+          "input_observation_names": [
+            "month_sin",
+            "month_cos",
+            "day_type_sin",
+            "day_type_cos",
+            "hour_sin",
+            "hour_cos",
+            "cooling_demand",
+            "heating_demand",
+            "direct_solar_irradiance",
+            "diffuse_solar_irradiance",
+            "outdoor_dry_bulb_temperature",
+            "occupant_count",
+            "indoor_dry_bulb_temperature"
+          ]
+        }
+      }
+    },
+    "resstock-amy2018-2021-release-1-285517": {
+      "type": "citylearn.building.LSTMDynamicsBuilding",
+      "include": true,
+      "energy_simulation": "resstock-amy2018-2021-release-1-285517.csv",
+      "weather": "weather.csv",
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
+      "inactive_observations": [
+        "dhw_storage_soc",
+        "dhw_storage_electricity_consumption"
+      ],
+      "inactive_actions": [
+        "dhw_storage"
+      ],
+      "cooling_device": {
+        "type": "citylearn.energy_model.HeatPump",
+        "autosize": true
+      },
+      "heating_device": {
+        "type": "citylearn.energy_model.GasBoiler",
+        "autosize": true
+      },
+      "dhw_device": {
+        "type": "citylearn.energy_model.ElectricHeater",
+        "autosize": true
+      },
+      "cooling_storage": null,
+      "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
+      "dhw_storage": null,
+      "electrical_storage": {
+        "type": "citylearn.energy_model.Battery",
+        "autosize": true
+      },
+      "pv": {
+        "type": "citylearn.energy_model.PV",
+        "autosize": true,
+        "autosize_attributes": {
+          "epw_filepath": "weather.epw",
+          "roof_area": 126.71988278139312
+        }
+      },
+      "dynamics": {
+        "type": "citylearn.dynamics.LSTMDynamics",
+        "attributes": {
+          "input_size": null,
+          "hidden_size": 8,
+          "num_layers": 2,
+          "lookback": 13,
+          "filename": "resstock-amy2018-2021-release-1-285517.pth",
+          "input_normalization_minimum": [
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            9.0
+          ],
+          "input_normalization_maximum": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            15.0,
+            15.0,
+            1007.5,
+            465.5,
+            28.9,
+            4.0,
+            35.0
+          ],
+          "input_observation_names": [
+            "month_sin",
+            "month_cos",
+            "day_type_sin",
+            "day_type_cos",
+            "hour_sin",
+            "hour_cos",
+            "cooling_demand",
+            "heating_demand",
+            "direct_solar_irradiance",
+            "diffuse_solar_irradiance",
+            "outdoor_dry_bulb_temperature",
+            "occupant_count",
+            "indoor_dry_bulb_temperature"
+          ]
+        }
+      }
+    },
+    "resstock-amy2018-2021-release-1-29185": {
+      "type": "citylearn.building.LSTMDynamicsBuilding",
+      "include": true,
+      "energy_simulation": "resstock-amy2018-2021-release-1-29185.csv",
+      "weather": "weather.csv",
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
+      "inactive_observations": [
+        "dhw_storage_soc",
+        "dhw_storage_electricity_consumption"
+      ],
+      "inactive_actions": [
+        "dhw_storage"
+      ],
+      "cooling_device": {
+        "type": "citylearn.energy_model.HeatPump",
+        "autosize": true
+      },
+      "heating_device": {
+        "type": "citylearn.energy_model.GasBoiler",
+        "autosize": true
+      },
+      "dhw_device": {
+        "type": "citylearn.energy_model.ElectricHeater",
+        "autosize": true
+      },
+      "cooling_storage": null,
+      "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
+      "dhw_storage": null,
+      "electrical_storage": {
+        "type": "citylearn.energy_model.Battery",
+        "autosize": true
+      },
+      "pv": {
+        "type": "citylearn.energy_model.PV",
+        "autosize": true,
+        "autosize_attributes": {
+          "epw_filepath": "weather.epw",
+          "roof_area": 126.71988278139312
+        }
+      },
+      "dynamics": {
+        "type": "citylearn.dynamics.LSTMDynamics",
+        "attributes": {
+          "input_size": null,
+          "hidden_size": 8,
+          "num_layers": 2,
+          "lookback": 13,
+          "filename": "resstock-amy2018-2021-release-1-29185.pth",
+          "input_normalization_minimum": [
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            9.0
+          ],
+          "input_normalization_maximum": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            15.0,
+            15.0,
+            1007.5,
+            465.5,
+            28.9,
+            4.0,
+            35.0
+          ],
+          "input_observation_names": [
+            "month_sin",
+            "month_cos",
+            "day_type_sin",
+            "day_type_cos",
+            "hour_sin",
+            "hour_cos",
+            "cooling_demand",
+            "heating_demand",
+            "direct_solar_irradiance",
+            "diffuse_solar_irradiance",
+            "outdoor_dry_bulb_temperature",
+            "occupant_count",
+            "indoor_dry_bulb_temperature"
+          ]
+        }
+      }
+    },
+    "resstock-amy2018-2021-release-1-32691": {
+      "type": "citylearn.building.LSTMDynamicsBuilding",
+      "include": true,
+      "energy_simulation": "resstock-amy2018-2021-release-1-32691.csv",
+      "weather": "weather.csv",
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
+      "inactive_observations": [
+        "dhw_storage_soc",
+        "dhw_storage_electricity_consumption"
+      ],
+      "inactive_actions": [
+        "dhw_storage"
+      ],
+      "cooling_device": {
+        "type": "citylearn.energy_model.HeatPump",
+        "autosize": true
+      },
+      "heating_device": {
+        "type": "citylearn.energy_model.GasBoiler",
+        "autosize": true
+      },
+      "dhw_device": {
+        "type": "citylearn.energy_model.ElectricHeater",
+        "autosize": true
+      },
+      "cooling_storage": null,
+      "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
+      "dhw_storage": null,
+      "electrical_storage": {
+        "type": "citylearn.energy_model.Battery",
+        "autosize": true
+      },
+      "pv": {
+        "type": "citylearn.energy_model.PV",
+        "autosize": true,
+        "autosize_attributes": {
+          "epw_filepath": "weather.epw",
+          "roof_area": 126.71988278139312
+        }
+      },
+      "dynamics": {
+        "type": "citylearn.dynamics.LSTMDynamics",
+        "attributes": {
+          "input_size": null,
+          "hidden_size": 8,
+          "num_layers": 2,
+          "lookback": 13,
+          "filename": "resstock-amy2018-2021-release-1-32691.pth",
+          "input_normalization_minimum": [
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            9.0
+          ],
+          "input_normalization_maximum": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            15.0,
+            15.0,
+            1007.5,
+            465.5,
+            28.9,
+            4.0,
+            35.0
+          ],
+          "input_observation_names": [
+            "month_sin",
+            "month_cos",
+            "day_type_sin",
+            "day_type_cos",
+            "hour_sin",
+            "hour_cos",
+            "cooling_demand",
+            "heating_demand",
+            "direct_solar_irradiance",
+            "diffuse_solar_irradiance",
+            "outdoor_dry_bulb_temperature",
+            "occupant_count",
+            "indoor_dry_bulb_temperature"
+          ]
+        }
+      }
+    },
+    "resstock-amy2018-2021-release-1-330722": {
+      "type": "citylearn.building.LSTMDynamicsBuilding",
+      "include": true,
+      "energy_simulation": "resstock-amy2018-2021-release-1-330722.csv",
+      "weather": "weather.csv",
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
+      "inactive_observations": [
+        "dhw_storage_soc",
+        "dhw_storage_electricity_consumption"
+      ],
+      "inactive_actions": [
+        "dhw_storage"
+      ],
+      "cooling_device": {
+        "type": "citylearn.energy_model.HeatPump",
+        "autosize": true
+      },
+      "heating_device": {
+        "type": "citylearn.energy_model.GasBoiler",
+        "autosize": true
+      },
+      "dhw_device": {
+        "type": "citylearn.energy_model.ElectricHeater",
+        "autosize": true
+      },
+      "cooling_storage": null,
+      "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
+      "dhw_storage": null,
+      "electrical_storage": {
+        "type": "citylearn.energy_model.Battery",
+        "autosize": true
+      },
+      "pv": {
+        "type": "citylearn.energy_model.PV",
+        "autosize": true,
+        "autosize_attributes": {
+          "epw_filepath": "weather.epw",
+          "roof_area": 126.71988278139312
+        }
+      },
+      "dynamics": {
+        "type": "citylearn.dynamics.LSTMDynamics",
+        "attributes": {
+          "input_size": null,
+          "hidden_size": 8,
+          "num_layers": 2,
+          "lookback": 13,
+          "filename": "resstock-amy2018-2021-release-1-330722.pth",
+          "input_normalization_minimum": [
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            9.0
+          ],
+          "input_normalization_maximum": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            15.0,
+            15.0,
+            1007.5,
+            465.5,
+            28.9,
+            4.0,
+            35.0
+          ],
+          "input_observation_names": [
+            "month_sin",
+            "month_cos",
+            "day_type_sin",
+            "day_type_cos",
+            "hour_sin",
+            "hour_cos",
+            "cooling_demand",
+            "heating_demand",
+            "direct_solar_irradiance",
+            "diffuse_solar_irradiance",
+            "outdoor_dry_bulb_temperature",
+            "occupant_count",
+            "indoor_dry_bulb_temperature"
+          ]
+        }
+      }
+    },
+    "resstock-amy2018-2021-release-1-409012": {
+      "type": "citylearn.building.LSTMDynamicsBuilding",
+      "include": true,
+      "energy_simulation": "resstock-amy2018-2021-release-1-409012.csv",
+      "weather": "weather.csv",
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
+      "inactive_observations": [
+        "dhw_storage_soc",
+        "dhw_storage_electricity_consumption"
+      ],
+      "inactive_actions": [
+        "dhw_storage"
+      ],
+      "cooling_device": {
+        "type": "citylearn.energy_model.HeatPump",
+        "autosize": true
+      },
+      "heating_device": {
+        "type": "citylearn.energy_model.GasBoiler",
+        "autosize": true
+      },
+      "dhw_device": {
+        "type": "citylearn.energy_model.ElectricHeater",
+        "autosize": true
+      },
+      "cooling_storage": null,
+      "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
+      "dhw_storage": null,
+      "electrical_storage": {
+        "type": "citylearn.energy_model.Battery",
+        "autosize": true
+      },
+      "pv": {
+        "type": "citylearn.energy_model.PV",
+        "autosize": true,
+        "autosize_attributes": {
+          "epw_filepath": "weather.epw",
+          "roof_area": 126.71988278139312
+        }
+      },
+      "dynamics": {
+        "type": "citylearn.dynamics.LSTMDynamics",
+        "attributes": {
+          "input_size": null,
+          "hidden_size": 8,
+          "num_layers": 2,
+          "lookback": 13,
+          "filename": "resstock-amy2018-2021-release-1-409012.pth",
+          "input_normalization_minimum": [
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            9.0
+          ],
+          "input_normalization_maximum": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            15.0,
+            15.0,
+            1007.5,
+            465.5,
+            28.9,
+            4.0,
+            35.0
+          ],
+          "input_observation_names": [
+            "month_sin",
+            "month_cos",
+            "day_type_sin",
+            "day_type_cos",
+            "hour_sin",
+            "hour_cos",
+            "cooling_demand",
+            "heating_demand",
+            "direct_solar_irradiance",
+            "diffuse_solar_irradiance",
+            "outdoor_dry_bulb_temperature",
+            "occupant_count",
+            "indoor_dry_bulb_temperature"
+          ]
+        }
+      }
+    },
+    "resstock-amy2018-2021-release-1-457349": {
+      "type": "citylearn.building.LSTMDynamicsBuilding",
+      "include": true,
+      "energy_simulation": "resstock-amy2018-2021-release-1-457349.csv",
+      "weather": "weather.csv",
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
+      "inactive_observations": [
+        "dhw_storage_soc",
+        "dhw_storage_electricity_consumption"
+      ],
+      "inactive_actions": [
+        "dhw_storage"
+      ],
+      "cooling_device": {
+        "type": "citylearn.energy_model.HeatPump",
+        "autosize": true
+      },
+      "heating_device": {
+        "type": "citylearn.energy_model.GasBoiler",
+        "autosize": true
+      },
+      "dhw_device": {
+        "type": "citylearn.energy_model.ElectricHeater",
+        "autosize": true
+      },
+      "cooling_storage": null,
+      "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
+      "dhw_storage": null,
+      "electrical_storage": {
+        "type": "citylearn.energy_model.Battery",
+        "autosize": true
+      },
+      "pv": {
+        "type": "citylearn.energy_model.PV",
+        "autosize": true,
+        "autosize_attributes": {
+          "epw_filepath": "weather.epw",
+          "roof_area": 126.71988278139312
+        }
+      },
+      "dynamics": {
+        "type": "citylearn.dynamics.LSTMDynamics",
+        "attributes": {
+          "input_size": null,
+          "hidden_size": 8,
+          "num_layers": 2,
+          "lookback": 13,
+          "filename": "resstock-amy2018-2021-release-1-457349.pth",
+          "input_normalization_minimum": [
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            9.0
+          ],
+          "input_normalization_maximum": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            15.0,
+            15.0,
+            1007.5,
+            465.5,
+            28.9,
+            4.0,
+            35.0
+          ],
+          "input_observation_names": [
+            "month_sin",
+            "month_cos",
+            "day_type_sin",
+            "day_type_cos",
+            "hour_sin",
+            "hour_cos",
+            "cooling_demand",
+            "heating_demand",
+            "direct_solar_irradiance",
+            "diffuse_solar_irradiance",
+            "outdoor_dry_bulb_temperature",
+            "occupant_count",
+            "indoor_dry_bulb_temperature"
+          ]
+        }
+      }
+    },
+    "resstock-amy2018-2021-release-1-508005": {
+      "type": "citylearn.building.LSTMDynamicsBuilding",
+      "include": true,
+      "energy_simulation": "resstock-amy2018-2021-release-1-508005.csv",
+      "weather": "weather.csv",
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
+      "inactive_observations": [
+        "dhw_storage_soc",
+        "dhw_storage_electricity_consumption"
+      ],
+      "inactive_actions": [
+        "dhw_storage"
+      ],
+      "cooling_device": {
+        "type": "citylearn.energy_model.HeatPump",
+        "autosize": true
+      },
+      "heating_device": {
+        "type": "citylearn.energy_model.GasBoiler",
+        "autosize": true
+      },
+      "dhw_device": {
+        "type": "citylearn.energy_model.ElectricHeater",
+        "autosize": true
+      },
+      "cooling_storage": null,
+      "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
+      "dhw_storage": null,
+      "electrical_storage": {
+        "type": "citylearn.energy_model.Battery",
+        "autosize": true
+      },
+      "pv": {
+        "type": "citylearn.energy_model.PV",
+        "autosize": true,
+        "autosize_attributes": {
+          "epw_filepath": "weather.epw",
+          "roof_area": 126.71988278139312
+        }
+      },
+      "dynamics": {
+        "type": "citylearn.dynamics.LSTMDynamics",
+        "attributes": {
+          "input_size": null,
+          "hidden_size": 8,
+          "num_layers": 2,
+          "lookback": 13,
+          "filename": "resstock-amy2018-2021-release-1-508005.pth",
+          "input_normalization_minimum": [
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            9.0
+          ],
+          "input_normalization_maximum": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            15.0,
+            15.0,
+            1007.5,
+            465.5,
+            28.9,
+            4.0,
+            35.0
+          ],
+          "input_observation_names": [
+            "month_sin",
+            "month_cos",
+            "day_type_sin",
+            "day_type_cos",
+            "hour_sin",
+            "hour_cos",
+            "cooling_demand",
+            "heating_demand",
+            "direct_solar_irradiance",
+            "diffuse_solar_irradiance",
+            "outdoor_dry_bulb_temperature",
+            "occupant_count",
+            "indoor_dry_bulb_temperature"
+          ]
+        }
+      }
+    },
+    "resstock-amy2018-2021-release-1-515536": {
+      "type": "citylearn.building.LSTMDynamicsBuilding",
+      "include": true,
+      "energy_simulation": "resstock-amy2018-2021-release-1-515536.csv",
+      "weather": "weather.csv",
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
+      "inactive_observations": [
+        "dhw_storage_soc",
+        "dhw_storage_electricity_consumption"
+      ],
+      "inactive_actions": [
+        "dhw_storage"
+      ],
+      "cooling_device": {
+        "type": "citylearn.energy_model.HeatPump",
+        "autosize": true
+      },
+      "heating_device": {
+        "type": "citylearn.energy_model.GasBoiler",
+        "autosize": true
+      },
+      "dhw_device": {
+        "type": "citylearn.energy_model.ElectricHeater",
+        "autosize": true
+      },
+      "cooling_storage": null,
+      "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
+      "dhw_storage": null,
+      "electrical_storage": {
+        "type": "citylearn.energy_model.Battery",
+        "autosize": true
+      },
+      "pv": {
+        "type": "citylearn.energy_model.PV",
+        "autosize": true,
+        "autosize_attributes": {
+          "epw_filepath": "weather.epw",
+          "roof_area": 126.71988278139312
+        }
+      },
+      "dynamics": {
+        "type": "citylearn.dynamics.LSTMDynamics",
+        "attributes": {
+          "input_size": null,
+          "hidden_size": 8,
+          "num_layers": 2,
+          "lookback": 13,
+          "filename": "resstock-amy2018-2021-release-1-515536.pth",
+          "input_normalization_minimum": [
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            9.0
+          ],
+          "input_normalization_maximum": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            15.0,
+            15.0,
+            1007.5,
+            465.5,
+            28.9,
+            4.0,
+            35.0
+          ],
+          "input_observation_names": [
+            "month_sin",
+            "month_cos",
+            "day_type_sin",
+            "day_type_cos",
+            "hour_sin",
+            "hour_cos",
+            "cooling_demand",
+            "heating_demand",
+            "direct_solar_irradiance",
+            "diffuse_solar_irradiance",
+            "outdoor_dry_bulb_temperature",
+            "occupant_count",
+            "indoor_dry_bulb_temperature"
+          ]
+        }
+      }
+    },
+    "resstock-amy2018-2021-release-1-529678": {
+      "type": "citylearn.building.LSTMDynamicsBuilding",
+      "include": true,
+      "energy_simulation": "resstock-amy2018-2021-release-1-529678.csv",
+      "weather": "weather.csv",
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
+      "inactive_observations": [
+        "dhw_storage_soc",
+        "dhw_storage_electricity_consumption"
+      ],
+      "inactive_actions": [
+        "dhw_storage"
+      ],
+      "cooling_device": {
+        "type": "citylearn.energy_model.HeatPump",
+        "autosize": true
+      },
+      "heating_device": {
+        "type": "citylearn.energy_model.GasBoiler",
+        "autosize": true
+      },
+      "dhw_device": {
+        "type": "citylearn.energy_model.ElectricHeater",
+        "autosize": true
+      },
+      "cooling_storage": null,
+      "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
+      "dhw_storage": null,
+      "electrical_storage": {
+        "type": "citylearn.energy_model.Battery",
+        "autosize": true
+      },
+      "pv": {
+        "type": "citylearn.energy_model.PV",
+        "autosize": true,
+        "autosize_attributes": {
+          "epw_filepath": "weather.epw",
+          "roof_area": 126.71988278139312
+        }
+      },
+      "dynamics": {
+        "type": "citylearn.dynamics.LSTMDynamics",
+        "attributes": {
+          "input_size": null,
+          "hidden_size": 8,
+          "num_layers": 2,
+          "lookback": 13,
+          "filename": "resstock-amy2018-2021-release-1-529678.pth",
+          "input_normalization_minimum": [
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            9.0
+          ],
+          "input_normalization_maximum": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            15.0,
+            15.0,
+            1007.5,
+            465.5,
+            28.9,
+            4.0,
+            35.0
+          ],
+          "input_observation_names": [
+            "month_sin",
+            "month_cos",
+            "day_type_sin",
+            "day_type_cos",
+            "hour_sin",
+            "hour_cos",
+            "cooling_demand",
+            "heating_demand",
+            "direct_solar_irradiance",
+            "diffuse_solar_irradiance",
+            "outdoor_dry_bulb_temperature",
+            "occupant_count",
+            "indoor_dry_bulb_temperature"
+          ]
+        }
+      }
+    },
+    "resstock-amy2018-2021-release-1-530480": {
+      "type": "citylearn.building.LSTMDynamicsBuilding",
+      "include": true,
+      "energy_simulation": "resstock-amy2018-2021-release-1-530480.csv",
+      "weather": "weather.csv",
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
+      "inactive_observations": [
+        "dhw_storage_soc",
+        "dhw_storage_electricity_consumption"
+      ],
+      "inactive_actions": [
+        "dhw_storage"
+      ],
+      "cooling_device": {
+        "type": "citylearn.energy_model.HeatPump",
+        "autosize": true
+      },
+      "heating_device": {
+        "type": "citylearn.energy_model.GasBoiler",
+        "autosize": true
+      },
+      "dhw_device": {
+        "type": "citylearn.energy_model.ElectricHeater",
+        "autosize": true
+      },
+      "cooling_storage": null,
+      "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
+      "dhw_storage": null,
+      "electrical_storage": {
+        "type": "citylearn.energy_model.Battery",
+        "autosize": true
+      },
+      "pv": {
+        "type": "citylearn.energy_model.PV",
+        "autosize": true,
+        "autosize_attributes": {
+          "epw_filepath": "weather.epw",
+          "roof_area": 126.71988278139312
+        }
+      },
+      "dynamics": {
+        "type": "citylearn.dynamics.LSTMDynamics",
+        "attributes": {
+          "input_size": null,
+          "hidden_size": 8,
+          "num_layers": 2,
+          "lookback": 13,
+          "filename": "resstock-amy2018-2021-release-1-530480.pth",
+          "input_normalization_minimum": [
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            9.0
+          ],
+          "input_normalization_maximum": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            15.0,
+            15.0,
+            1007.5,
+            465.5,
+            28.9,
+            4.0,
+            35.0
+          ],
+          "input_observation_names": [
+            "month_sin",
+            "month_cos",
+            "day_type_sin",
+            "day_type_cos",
+            "hour_sin",
+            "hour_cos",
+            "cooling_demand",
+            "heating_demand",
+            "direct_solar_irradiance",
+            "diffuse_solar_irradiance",
+            "outdoor_dry_bulb_temperature",
+            "occupant_count",
+            "indoor_dry_bulb_temperature"
+          ]
+        }
+      }
+    },
+    "resstock-amy2018-2021-release-1-534588": {
+      "type": "citylearn.building.LSTMDynamicsBuilding",
+      "include": true,
+      "energy_simulation": "resstock-amy2018-2021-release-1-534588.csv",
+      "weather": "weather.csv",
+      "carbon_intensity": "carbon_intensity.csv",
+      "pricing": "pricing_2023.csv",
+      "inactive_observations": [
+        "dhw_storage_soc",
+        "dhw_storage_electricity_consumption"
+      ],
+      "inactive_actions": [
+        "dhw_storage"
+      ],
+      "cooling_device": {
+        "type": "citylearn.energy_model.HeatPump",
+        "autosize": true
+      },
+      "heating_device": {
+        "type": "citylearn.energy_model.GasBoiler",
+        "autosize": true
+      },
+      "dhw_device": {
+        "type": "citylearn.energy_model.ElectricHeater",
+        "autosize": true
+      },
+      "cooling_storage": null,
+      "heating_storage": {
+        "type": "citylearn.energy_model.StorageTank",
+        "autosize": true
+      },
+      "dhw_storage": null,
+      "electrical_storage": {
+        "type": "citylearn.energy_model.Battery",
+        "autosize": true
+      },
+      "pv": {
+        "type": "citylearn.energy_model.PV",
+        "autosize": true,
+        "autosize_attributes": {
+          "epw_filepath": "weather.epw",
+          "roof_area": 126.71988278139312
+        }
+      },
+      "dynamics": {
+        "type": "citylearn.dynamics.LSTMDynamics",
+        "attributes": {
+          "input_size": null,
+          "hidden_size": 8,
+          "num_layers": 2,
+          "lookback": 13,
+          "filename": "resstock-amy2018-2021-release-1-534588.pth",
+          "input_normalization_minimum": [
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            9.0
+          ],
+          "input_normalization_maximum": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            15.0,
+            15.0,
+            1007.5,
+            465.5,
+            28.9,
+            4.0,
+            35.0
+          ],
+          "input_observation_names": [
+            "month_sin",
+            "month_cos",
+            "day_type_sin",
+            "day_type_cos",
+            "hour_sin",
+            "hour_cos",
+            "cooling_demand",
+            "heating_demand",
+            "direct_solar_irradiance",
+            "diffuse_solar_irradiance",
+            "outdoor_dry_bulb_temperature",
+            "occupant_count",
+            "indoor_dry_bulb_temperature"
+          ]
+        }
+      }
+    },
     "resstock-amy2018-2021-release-1-55542": {
       "type": "citylearn.building.LSTMDynamicsBuilding",
       "include": true,
@@ -317,7 +1617,7 @@
         "autosize": true
       },
       "cooling_storage": null,
-            "heating_storage": {
+      "heating_storage": {
         "type": "citylearn.energy_model.StorageTank",
         "autosize": true
       },
@@ -355,7 +1655,7 @@
             0.0,
             0.0,
             0.0,
-            11.357643429102511
+            9.0
           ],
           "input_normalization_maximum": [
             1.0,
@@ -364,13 +1664,13 @@
             1.0,
             1.0,
             1.0,
-            10.930234457145266,
-            11.052674244376313,
+            15.0,
+            15.0,
             1007.5,
             465.5,
             28.9,
-            5.0,
-            36.93226640157266
+            4.0,
+            35.0
           ],
           "input_observation_names": [
             "month_sin",
@@ -431,7 +1731,7 @@
         "autosize": true,
         "autosize_attributes": {
           "epw_filepath": "weather.epw",
-          "roof_area": 402.6991605679938
+          "roof_area": 126.71988278139312
         }
       },
       "dynamics": {
@@ -455,7 +1755,7 @@
             0.0,
             0.0,
             0.0,
-            9.494507738957193
+            9.0
           ],
           "input_normalization_maximum": [
             1.0,
@@ -464,13 +1764,13 @@
             1.0,
             1.0,
             1.0,
-            21.61477114091716,
-            22.483884534630107,
+            15.0,
+            15.0,
             1007.5,
             465.5,
             28.9,
-            1.0,
-            30.975356517631766
+            4.0,
+            35.0
           ],
           "input_observation_names": [
             "month_sin",
@@ -517,7 +1817,7 @@
         "autosize": true
       },
       "cooling_storage": null,
-            "heating_storage": {
+      "heating_storage": {
         "type": "citylearn.energy_model.StorageTank",
         "autosize": true
       },
@@ -531,7 +1831,7 @@
         "autosize": true,
         "autosize_attributes": {
           "epw_filepath": "weather.epw",
-          "roof_area": 95.6631238736862
+          "roof_area": 126.71988278139312
         }
       },
       "dynamics": {
@@ -555,7 +1855,7 @@
             0.0,
             0.0,
             0.0,
-            7.093006110994064
+            9.0
           ],
           "input_normalization_maximum": [
             1.0,
@@ -564,13 +1864,13 @@
             1.0,
             1.0,
             1.0,
-            5.997162412086362,
-            6.103725384924827,
+            15.0,
+            15.0,
             1007.5,
             465.5,
             28.9,
-            2.0,
-            32.48435325716818
+            4.0,
+            35.0
           ],
           "input_observation_names": [
             "month_sin",
@@ -617,7 +1917,7 @@
         "autosize": true
       },
       "cooling_storage": null,
-            "heating_storage": {
+      "heating_storage": {
         "type": "citylearn.energy_model.StorageTank",
         "autosize": true
       },
@@ -631,7 +1931,7 @@
         "autosize": true,
         "autosize_attributes": {
           "epw_filepath": "weather.epw",
-          "roof_area": 121.83805123161767
+          "roof_area": 126.71988278139312
         }
       },
       "dynamics": {
@@ -655,7 +1955,7 @@
             0.0,
             0.0,
             0.0,
-            8.055768448668276
+            9.0
           ],
           "input_normalization_maximum": [
             1.0,
@@ -664,13 +1964,13 @@
             1.0,
             1.0,
             1.0,
-            12.12889205983019,
-            8.416112447674543,
+            15.0,
+            15.0,
             1007.5,
             465.5,
             28.9,
-            2.0,
-            34.65779697483988
+            4.0,
+            35.0
           ],
           "input_observation_names": [
             "month_sin",
@@ -717,7 +2017,7 @@
         "autosize": true
       },
       "cooling_storage": null,
-            "heating_storage": {
+      "heating_storage": {
         "type": "citylearn.energy_model.StorageTank",
         "autosize": true
       },
@@ -731,7 +2031,7 @@
         "autosize": true,
         "autosize_attributes": {
           "epw_filepath": "weather.epw",
-          "roof_area": 226.01841387894368
+          "roof_area": 126.71988278139312
         }
       },
       "dynamics": {
@@ -755,7 +2055,7 @@
             0.0,
             0.0,
             0.0,
-            12.027683170233937
+            9.0
           ],
           "input_normalization_maximum": [
             1.0,
@@ -764,13 +2064,13 @@
             1.0,
             1.0,
             1.0,
-            9.957860738909073,
-            7.42131318864157,
+            15.0,
+            15.0,
             1007.5,
             465.5,
             28.9,
-            2.0,
-            28.80302774994876
+            4.0,
+            35.0
           ],
           "input_observation_names": [
             "month_sin",
@@ -817,7 +2117,7 @@
         "autosize": true
       },
       "cooling_storage": null,
-            "heating_storage": {
+      "heating_storage": {
         "type": "citylearn.energy_model.StorageTank",
         "autosize": true
       },
@@ -855,7 +2155,7 @@
             0.0,
             0.0,
             0.0,
-            9.089463048275112
+            9.0
           ],
           "input_normalization_maximum": [
             1.0,
@@ -864,13 +2164,13 @@
             1.0,
             1.0,
             1.0,
-            12.689815375965448,
-            9.81176608469418,
+            15.0,
+            15.0,
             1007.5,
             465.5,
             28.9,
-            1.0,
-            37.97518358275081
+            4.0,
+            35.0
           ],
           "input_observation_names": [
             "month_sin",
@@ -917,7 +2217,7 @@
         "autosize": true
       },
       "cooling_storage": null,
-            "heating_storage": {
+      "heating_storage": {
         "type": "citylearn.energy_model.StorageTank",
         "autosize": true
       },
@@ -931,7 +2231,7 @@
         "autosize": true,
         "autosize_attributes": {
           "epw_filepath": "weather.epw",
-          "roof_area": 372.7849666413285
+          "roof_area": 126.71988278139312
         }
       },
       "dynamics": {
@@ -955,7 +2255,7 @@
             0.0,
             0.0,
             0.0,
-            9.093347464879326
+            9.0
           ],
           "input_normalization_maximum": [
             1.0,
@@ -964,313 +2264,13 @@
             1.0,
             1.0,
             1.0,
-            30.36162973705169,
-            22.98937608586749,
-            1007.5,
-            465.5,
-            28.9,
-            1.0,
-            31.39823669685438
-          ],
-          "input_observation_names": [
-            "month_sin",
-            "month_cos",
-            "day_type_sin",
-            "day_type_cos",
-            "hour_sin",
-            "hour_cos",
-            "cooling_demand",
-            "heating_demand",
-            "direct_solar_irradiance",
-            "diffuse_solar_irradiance",
-            "outdoor_dry_bulb_temperature",
-            "occupant_count",
-            "indoor_dry_bulb_temperature"
-          ]
-        }
-      }
-    },
-    "resstock-amy2018-2021-release-1-515536": {
-      "type": "citylearn.building.LSTMDynamicsBuilding",
-      "include": true,
-      "energy_simulation": "resstock-amy2018-2021-release-1-515536.csv",
-      "weather": "weather.csv",
-      "carbon_intensity": "carbon_intensity.csv",
-      "pricing": "pricing_2023.csv",
-      "inactive_observations": [
-        "dhw_storage_soc",
-        "dhw_storage_electricity_consumption"
-      ],
-      "inactive_actions": [
-        "dhw_storage"
-      ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
-      "heating_device": {
-        "type": "citylearn.energy_model.GasBoiler",
-        "autosize": true
-      },
-      "dhw_device": {
-        "type": "citylearn.energy_model.ElectricHeater",
-        "autosize": true
-      },
-      "cooling_storage": null,
-            "heating_storage": {
-        "type": "citylearn.energy_model.StorageTank",
-        "autosize": true
-      },
-      "dhw_storage": null,
-      "electrical_storage": {
-        "type": "citylearn.energy_model.Battery",
-        "autosize": true
-      },
-      "pv": {
-        "type": "citylearn.energy_model.PV",
-        "autosize": true,
-        "autosize_attributes": {
-          "epw_filepath": "weather.epw",
-          "roof_area": 226.0184138789437
-        }
-      },
-      "dynamics": {
-        "type": "citylearn.dynamics.LSTMDynamics",
-        "attributes": {
-          "input_size": null,
-          "hidden_size": 8,
-          "num_layers": 2,
-          "lookback": 13,
-          "filename": "resstock-amy2018-2021-release-1-515536.pth",
-          "input_normalization_minimum": [
-            -1.0,
-            -1.0,
-            -1.0,
-            -1.0,
-            -1.0,
-            -1.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            9.103013973357587
-          ],
-          "input_normalization_maximum": [
-            1.0,
-            1.0,
-            1.0,
-            1.0,
-            1.0,
-            1.0,
-            19.267134151064525,
-            17.913663801903304,
+            15.0,
+            15.0,
             1007.5,
             465.5,
             28.9,
             4.0,
-            34.43712970859705
-          ],
-          "input_observation_names": [
-            "month_sin",
-            "month_cos",
-            "day_type_sin",
-            "day_type_cos",
-            "hour_sin",
-            "hour_cos",
-            "cooling_demand",
-            "heating_demand",
-            "direct_solar_irradiance",
-            "diffuse_solar_irradiance",
-            "outdoor_dry_bulb_temperature",
-            "occupant_count",
-            "indoor_dry_bulb_temperature"
-          ]
-        }
-      }
-    },
-    "resstock-amy2018-2021-release-1-529678": {
-      "type": "citylearn.building.LSTMDynamicsBuilding",
-      "include": true,
-      "energy_simulation": "resstock-amy2018-2021-release-1-529678.csv",
-      "weather": "weather.csv",
-      "carbon_intensity": "carbon_intensity.csv",
-      "pricing": "pricing_2023.csv",
-      "inactive_observations": [
-        "dhw_storage_soc",
-        "dhw_storage_electricity_consumption"
-      ],
-      "inactive_actions": [
-        "dhw_storage"
-      ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
-      "heating_device": {
-        "type": "citylearn.energy_model.GasBoiler",
-        "autosize": true
-      },
-      "dhw_device": {
-        "type": "citylearn.energy_model.ElectricHeater",
-        "autosize": true
-      },
-      "cooling_storage": null,
-            "heating_storage": {
-        "type": "citylearn.energy_model.StorageTank",
-        "autosize": true
-      },
-      "dhw_storage": null,
-      "electrical_storage": {
-        "type": "citylearn.energy_model.Battery",
-        "autosize": true
-      },
-      "pv": {
-        "type": "citylearn.energy_model.PV",
-        "autosize": true,
-        "autosize_attributes": {
-          "epw_filepath": "weather.epw",
-          "roof_area": 175.53819827914327
-        }
-      },
-      "dynamics": {
-        "type": "citylearn.dynamics.LSTMDynamics",
-        "attributes": {
-          "input_size": null,
-          "hidden_size": 8,
-          "num_layers": 2,
-          "lookback": 13,
-          "filename": "resstock-amy2018-2021-release-1-529678.pth",
-          "input_normalization_minimum": [
-            -1.0,
-            -1.0,
-            -1.0,
-            -1.0,
-            -1.0,
-            -1.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            4.777585340239737
-          ],
-          "input_normalization_maximum": [
-            1.0,
-            1.0,
-            1.0,
-            1.0,
-            1.0,
-            1.0,
-            15.670816372533876,
-            14.271984114753645,
-            1007.5,
-            465.5,
-            28.9,
-            3.0,
-            33.36606306998274
-          ],
-          "input_observation_names": [
-            "month_sin",
-            "month_cos",
-            "day_type_sin",
-            "day_type_cos",
-            "hour_sin",
-            "hour_cos",
-            "cooling_demand",
-            "heating_demand",
-            "direct_solar_irradiance",
-            "diffuse_solar_irradiance",
-            "outdoor_dry_bulb_temperature",
-            "occupant_count",
-            "indoor_dry_bulb_temperature"
-          ]
-        }
-      }
-    },
-    "resstock-amy2018-2021-release-1-530480": {
-      "type": "citylearn.building.LSTMDynamicsBuilding",
-      "include": true,
-      "energy_simulation": "resstock-amy2018-2021-release-1-530480.csv",
-      "weather": "weather.csv",
-      "carbon_intensity": "carbon_intensity.csv",
-      "pricing": "pricing_2023.csv",
-      "inactive_observations": [
-        "dhw_storage_soc",
-        "dhw_storage_electricity_consumption"
-      ],
-      "inactive_actions": [
-        "dhw_storage"
-      ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
-      "heating_device": {
-        "type": "citylearn.energy_model.GasBoiler",
-        "autosize": true
-      },
-      "dhw_device": {
-        "type": "citylearn.energy_model.ElectricHeater",
-        "autosize": true
-      },
-      "cooling_storage": null,
-            "heating_storage": {
-        "type": "citylearn.energy_model.StorageTank",
-        "autosize": true
-      },
-      "dhw_storage": null,
-      "electrical_storage": {
-        "type": "citylearn.energy_model.Battery",
-        "autosize": true
-      },
-      "pv": {
-        "type": "citylearn.energy_model.PV",
-        "autosize": true,
-        "autosize_attributes": {
-          "epw_filepath": "weather.epw",
-          "roof_area": 175.53819827914327
-        }
-      },
-      "dynamics": {
-        "type": "citylearn.dynamics.LSTMDynamics",
-        "attributes": {
-          "input_size": null,
-          "hidden_size": 8,
-          "num_layers": 2,
-          "lookback": 13,
-          "filename": "resstock-amy2018-2021-release-1-530480.pth",
-          "input_normalization_minimum": [
-            -1.0,
-            -1.0,
-            -1.0,
-            -1.0,
-            -1.0,
-            -1.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            9.213858709156074
-          ],
-          "input_normalization_maximum": [
-            1.0,
-            1.0,
-            1.0,
-            1.0,
-            1.0,
-            1.0,
-            12.762679084173229,
-            12.450141856980078,
-            1007.5,
-            465.5,
-            28.9,
-            4.0,
-            28.837691558026936
+            35.0
           ],
           "input_observation_names": [
             "month_sin",
@@ -1291,4 +2291,5 @@
       }
     }
   }
+
 }

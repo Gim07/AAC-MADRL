@@ -6,9 +6,9 @@ from math import ceil
 
 # --- Parametri dell’esperimento ---
 n_buildings = 10
-district = "TX"
+district = "CA"
 lr = 0.0003
-beta = 0.5
+beta = 0.2
 gamma = 3.5
 
 dataset_key = f"{district}_{n_buildings}_dynamics"
@@ -19,13 +19,14 @@ kpi_dir.mkdir(parents=True, exist_ok=True)
 # File KPI (ogni CSV ha colonne: cost_function,District)
 kpi_files = {
     # "P_RBC": kpi_dir / f"p_rbc_lr={lr}.csv",
-    # "PI_RBC": kpi_dir / f"pi_rbc_lr={lr}.csv",
-    "PID_RBC": kpi_dir / f"pid_rbc_lr={lr}.csv",
-    "GB_PID_RBC": kpi_dir / f"gb_pid_rbc_lr={lr}.csv",
-    # "SAC": kpi_dir / f"sac_lr={lr}.csv",
+    "PI_RBC": kpi_dir / f"pi_rbc_lr={lr}.csv",
+    # "PID_RBC": kpi_dir / f"pid_rbc_lr={lr}.csv",
+    # "GB_PID_RBC": kpi_dir / f"gb_pid_rbc_lr={lr}.csv",
+    "SAC": kpi_dir / f"sac_lr={lr}.csv",
 }
 
-# Ordine desiderato delle KPI
+# --- MODIFICA INIZIO ---
+# Ordine desiderato delle KPI (aggiornato per includere tutte le 12 colonne)
 KPI_ORDER = [
     "Import",
     "Variance",
@@ -35,7 +36,12 @@ KPI_ORDER = [
     "Avg Comfort Violation Below (°C)",
     "Avg Num Comfort Violations Above",
     "Avg Num Comfort Violations Below",
+    "Fuel Import",
+    "Fuel Variance",
+    "Fuel Cost",
+    "Fuel Emissions",
 ]
+# --- MODIFICA FINE ---
 
 def read_kpi_csv(file_path: Path, algo_name: str, value_col: str = "District") -> pd.DataFrame:
     if not file_path.exists():

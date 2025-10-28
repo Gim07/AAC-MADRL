@@ -7,11 +7,11 @@ from typing import List, Optional, Tuple
 
 ALGO_DIR = {
     # "AAC-MADRL": "aac_madrl",
-    # "SAC": "sac",
+    "SAC": "sac",
     # "P_RBC": "P_rbc",
     # "PI_RBC": "PI_rbc",
     "PID_RBC": "PID_rbc",
-    "GB_PID_RBC": "GB_PID_rbc",
+    # "GB_PID_RBC": "GB_PID_rbc",
 }
 
 def find_obs_csv(outputs_root: Path, dataset_key: str, algorithm: str, beta: float, lr: float, gamma: float, season: str) -> Path:
@@ -258,32 +258,32 @@ def process_kpi(outputs_root: Path, dataset_key: str, algorithm: str, kpi_dir: P
         if "Fuel Emissions" in df_kpi.index:  # Only set NaN if row exists
             df_kpi.loc["Fuel Emissions", "District"] = np.nan
 
-        # --- Comfort KPIs: averages over all buildings in the folder ---
-        obs_folder = obs_csv.parent
-        try:
-            num_violations, va, vb, nva, nvb = mean_comfort_violation_for_folder(obs_folder)
-            df_kpi.loc["Avg Num Comfort Violations", "District"] = float(num_violations)
-            df_kpi.loc["Avg Comfort Violation Above (°C)", "District"] = float(va)
-            df_kpi.loc["Avg Comfort Violation Below (°C)", "District"] = float(vb)
-            df_kpi.loc["Avg Num Comfort Violations Above", "District"] = float(nva)
-            df_kpi.loc["Avg Num Comfort Violations Below", "District"] = float(nvb)
-        except Exception as e:
-            print(f"Error calculating comfort KPIs for {algorithm}: {e}")
-            # Set comfort KPIs to NaN on error
-            comfort_kpis = ["Avg Num Comfort Violations", "Avg Comfort Violation Above (°C)",
-                            "Avg Comfort Violation Below (°C)", "Avg Num Comfort Violations Above",
-                            "Avg Num Comfort Violations Below"]
-            for kpi_name in comfort_kpis:
-                if kpi_name in df_kpi.index:
-                    df_kpi.loc[kpi_name, "District"] = np.nan
+    # --- Comfort KPIs: averages over all buildings in the folder ---
+    obs_folder = obs_csv.parent
+    try:
+        num_violations, va, vb, nva, nvb = mean_comfort_violation_for_folder(obs_folder)
+        df_kpi.loc["Avg Num Comfort Violations", "District"] = float(num_violations)
+        df_kpi.loc["Avg Comfort Violation Above (°C)", "District"] = float(va)
+        df_kpi.loc["Avg Comfort Violation Below (°C)", "District"] = float(vb)
+        df_kpi.loc["Avg Num Comfort Violations Above", "District"] = float(nva)
+        df_kpi.loc["Avg Num Comfort Violations Below", "District"] = float(nvb)
+    except Exception as e:
+        print(f"Error calculating comfort KPIs for {algorithm}: {e}")
+        # Set comfort KPIs to NaN on error
+        comfort_kpis = ["Avg Num Comfort Violations", "Avg Comfort Violation Above (°C)",
+                        "Avg Comfort Violation Below (°C)", "Avg Num Comfort Violations Above",
+                        "Avg Num Comfort Violations Below"]
+        for kpi_name in comfort_kpis:
+            if kpi_name in df_kpi.index:
+                df_kpi.loc[kpi_name, "District"] = np.nan
 
-        # Save updated KPI to CSV
-        try:
-            df_kpi.to_csv(kpi_file, index=True, index_label="cost_function")
-        except Exception as e:
-            print(f"[ERROR] Failed to save updated KPI file {kpi_file}: {e}")
+    # Save updated KPI to CSV
+    try:
+        df_kpi.to_csv(kpi_file, index=True, index_label="cost_function")
+    except Exception as e:
+        print(f"[ERROR] Failed to save updated KPI file {kpi_file}: {e}")
 
-        return df_obs, df_kpi, kpi_file
+    return df_obs, df_kpi, kpi_file
 
 # ---------- driver ----------
 
@@ -293,15 +293,16 @@ if __name__ == "__main__":
     learning_rate = 0.0003
     control_algorithms = [
         # "P_RBC",
-        # "PI_RBC",
-        "PID_RBC",
-        # "SAC",
-        "GB_PID_RBC"]
-    beta = 0.5
+        "PI_RBC",
+        # "PID_RBC",
+        "SAC",
+        # "GB_PID_RBC"
+        ]
+    beta = 0.2
     gamma = 3.5
-    dataset = "TX"  # per comporre dataset_key
+    dataset = "CA"  # per comporre dataset_key
     season = "winter"
-    start_date = "2017-01-01 00:00:00"
+    start_date = "2023-01-01 00:00:00"
 
     outputs_root = Path.cwd() / "outputs" / "data"
 
