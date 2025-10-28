@@ -614,13 +614,8 @@ class CarbonIntensity(TimeSeriesData):
         # Questo è per l'elettricità
         self.carbon_intensity = np.array(carbon_intensity, dtype='float32')
 
-        # NUOVO: Aggiungi logica per il nuovo campo carburante
-        data_length = len(self.carbon_intensity)
-
         # Inizializza l'intensità del carburante a zero se non fornita, altrimenti usa i valori passati
-        self.fuel_carbon_intensity = np.zeros(data_length,
-                                              dtype='float32') if fuel_carbon_intensity is None else np.array(
-            fuel_carbon_intensity, dtype='float32')
+        # self.fuel_carbon_intensity =  np.array(fuel_carbon_intensity, dtype='float32')
 
 
 class ElectricVehicleSimulation(TimeSeriesData):
