@@ -338,11 +338,15 @@ if __name__ == "__main__":
 
         # Calculate daily aggregates for all algorithms
         daily_dfs = {}
-        for algo in control_algorithms:
-            daily_dfs[algo] = df_obs_dict[algo].resample("D").agg({
-                "net electricity consumption": ["max", "mean"],
-                "positive net electricity consumption": ["max", "mean"]
-            })
+        try:
+            for algo in control_algorithms:
+                daily_dfs[algo] = df_obs_dict[algo].resample("D").agg({
+                    "net electricity consumption": ["max", "mean"],
+                    "positive net electricity consumption": ["max", "mean"]
+                })
+        except Exception as e:
+            print(f"Error during daily aggregation: {e}")
+            daily_dfs = {algo: pd.DataFrame() for algo in control_algorithms}  # Fallback to empty
 
         # Update KPI files with Daily Peak Average for each algorithm
         for algo in control_algorithms:
