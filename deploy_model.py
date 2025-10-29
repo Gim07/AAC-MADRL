@@ -421,7 +421,10 @@ if __name__ == "__main__":
         gamma=args.gamma if args.gamma is not None else 1.0,
         sim_start=args.sim_start,
         sim_end=args.sim_end,
-        aac_classes={"dhw_storage": 21, "electrical_storage": 21, "cooling_or_heating_device": 21},
+        aac_classes={"dhw_storage": 21,
+                     "electrical_storage": 21,
+                     "heating_storage":21,
+                     "cooling_or_heating_device": 21},
     )
 
 

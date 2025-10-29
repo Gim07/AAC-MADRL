@@ -5,7 +5,7 @@ from pathlib import Path
 from math import ceil
 
 # --- Parametri dell’esperimento ---
-n_buildings = 10
+n_buildings = 20
 district = "CA"
 lr = 0.0003
 beta = 0.2
@@ -23,6 +23,7 @@ kpi_files = {
     # "PID_RBC": kpi_dir / f"pid_rbc_lr={lr}.csv",
     # "GB_PID_RBC": kpi_dir / f"gb_pid_rbc_lr={lr}.csv",
     "SAC": kpi_dir / f"sac_lr={lr}.csv",
+    "AAC_MADRL": kpi_dir / f"aac-madrl_lr={lr}.csv",
 }
 
 # --- MODIFICA INIZIO ---

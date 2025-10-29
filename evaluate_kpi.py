@@ -12,6 +12,7 @@ ALGO_DIR = {
     # "PI_RBC": "PI_rbc",
     "PID_RBC": "PID_rbc",
     # "GB_PID_RBC": "GB_PID_rbc",
+    "AAC-MADRL": "aac_madrl",
 }
 
 def find_obs_csv(outputs_root: Path, dataset_key: str, algorithm: str, beta: float, lr: float, gamma: float) -> Path:
@@ -289,14 +290,15 @@ def process_kpi(outputs_root: Path, dataset_key: str, algorithm: str, kpi_dir: P
 
 if __name__ == "__main__":
     # Config
-    building_counts = [10]
+    building_counts = [20]
     learning_rate = 0.0003
     control_algorithms = [
         # "P_RBC",
         "PI_RBC",
         # "PID_RBC",
         "SAC",
-        # "GB_PID_RBC"
+        # "GB_PID_RBC",
+        "AAC-MADRL",
         ]
     beta = 0.2
     gamma = 3.5

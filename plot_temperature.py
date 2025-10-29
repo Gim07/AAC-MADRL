@@ -18,7 +18,8 @@ ALGOS = [
     'PI_RBC',
     # 'PID_RBC',
     # 'GB_PID_RBC',
-    'SAC'
+    'SAC',
+    'AAC-MADRL',
 ]  # <-- Indoor T con colori diversi + legenda
 district = 'CA'
 dataset_key = f"{district}_{N_BUILDINGS}_dynamics"
@@ -44,9 +45,9 @@ ALGO_PATTERNS: Dict[str, List[str]] = {
     'SAC': [
         f"outputs/data/{dataset_key}/schema.json/obs/sac/beta={beta}_gamma={gamma}/lr={lr}/obs_building" + "_{i}.csv",
     ],
-    # 'AAC-MADRL': [
-    #     f"outputs/data/{dataset_key}/obs/aac_madrl/beta={beta}_gamma={gamma}/lr={lr}/obs_building" + "_{i}.csv",
-    # ],
+    'AAC-MADRL': [
+        f"outputs/data/{dataset_key}/schema.json/obs/aac_madrl/beta={beta}_gamma={gamma}/lr={lr}/obs_building" + "_{i}.csv",
+    ],
 }
 
 # Dataset orario a partire da:
