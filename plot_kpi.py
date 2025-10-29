@@ -5,7 +5,7 @@ from pathlib import Path
 from math import ceil
 
 # --- Parametri dell’esperimento ---
-n_buildings = 10
+n_buildings = 20
 district = "CA"
 lr = 0.0003
 beta = 0.2
