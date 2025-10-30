@@ -275,7 +275,7 @@ class SAC(RLC):
 
         return encoders
 
-    def save_models(self, zip_path: str = 'sac.zip', dtype: Optional[str] = None):
+    def save_models(self, zip_path: str = 'sac_centralized.zip', dtype: Optional[str] = None):
         """
         Crea SOLO uno .zip con:
         - mean_std/config.json (statistiche normalizzazione)
@@ -348,7 +348,7 @@ class SAC(RLC):
         Parametri
         ---------
         zip_path : str
-            Percorso allo ZIP (es. '.../sac.zip').
+            Percorso allo ZIP (es. '.../sac_centralized.zip').
         map_location : Optional[str]
             'cpu', 'cuda', o torch.device; passato a torch.load.
         cast_to : Optional[str]
@@ -455,7 +455,7 @@ class SAC(RLC):
         print(".... models loaded ✓")
 
 class SACRBC(SAC):
-    r"""Uses :py:class:`citylearn.agents.P_rbc.RBC` to select actions during exploration before using :py:class:`citylearn.agents.sac.SAC`.
+    r"""Uses :py:class:`citylearn.agents.P_rbc.RBC` to select actions during exploration before using :py:class:`citylearn.agents.sac_centralized.SAC`.
 
     Parameters
     ----------

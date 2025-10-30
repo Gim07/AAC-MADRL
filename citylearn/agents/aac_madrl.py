@@ -979,7 +979,7 @@ class AAC_MADRL(RLC):
                     pass
 
 class AAC_MADRL_RBC(AAC_MADRL):
-    r"""Uses :py:class:`citylearn.agents.P_rbc.RBC` to select action during exploration before using :py:class:`citylearn.agents.sac.SAC`.
+    r"""Uses :py:class:`citylearn.agents.P_rbc.RBC` to select action during exploration before using :py:class:`citylearn.agents.sac_centralized.SAC`.
 
     Parameters
     ----------

@@ -7,7 +7,8 @@ from typing import List, Optional, Tuple
 
 ALGO_DIR = {
     # "AAC-MADRL": "aac_madrl",
-    "SAC": "sac",
+    # "SAC": "sac",
+    "SAC_CENTRALIZED": "sac_centralized",
     # "P_RBC": "P_rbc",
     # "PI_RBC": "PI_rbc",
     "PID_RBC": "PID_rbc",
@@ -296,12 +297,13 @@ if __name__ == "__main__":
         # "P_RBC",
         "PI_RBC",
         # "PID_RBC",
-        "SAC",
+        # "SAC",
+        "SAC_CENTRALIZED",
         # "GB_PID_RBC",
         "AAC-MADRL",
         ]
-    beta = 0.2
-    gamma = 3.5
+    beta = 0.5
+    gamma = 3.0
     dataset = "CA"  # per comporre dataset_key
     season = "winter"
     start_date = "2023-01-01 00:00:00"

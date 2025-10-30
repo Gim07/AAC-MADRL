@@ -275,10 +275,10 @@
       "active": false
     },
     "heating_device": {
-      "active": false
+      "active": true
     },
     "cooling_or_heating_device": {
-      "active": true
+      "active": false
     }
   },
   "agent": {
@@ -286,10 +286,10 @@
     "attributes": null
   },
   "reward_function": {
-    "type": "citylearn.custom_reward.ComfortConsumptionDistrictRewardFixed",
+    "type": "citylearn.custom_reward.ComfortCostCarbonReward",
     "attributes": null
   },
-    "buildings": {
+  "buildings": {
     "resstock-amy2018-2021-release-1-185734": {
       "type": "citylearn.building.LSTMDynamicsBuilding",
       "include": true,
@@ -304,10 +304,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -404,10 +401,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -504,10 +498,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -604,10 +595,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -704,10 +692,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -804,10 +789,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -904,10 +886,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -1004,10 +983,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -1104,10 +1080,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -1204,10 +1177,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -1304,10 +1274,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -1404,10 +1371,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -1504,10 +1468,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -1604,10 +1565,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -1704,10 +1662,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -1804,10 +1759,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -1904,10 +1856,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -2004,10 +1953,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -2104,10 +2050,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -2204,10 +2147,7 @@
       "inactive_actions": [
         "dhw_storage"
       ],
-      "cooling_device": {
-        "type": "citylearn.energy_model.HeatPump",
-        "autosize": true
-      },
+      "cooling_device": null,
       "heating_device": {
         "type": "citylearn.energy_model.GasBoiler",
         "autosize": true
@@ -2291,5 +2231,4 @@
       }
     }
   }
-
 }

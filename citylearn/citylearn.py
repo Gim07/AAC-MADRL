@@ -927,6 +927,8 @@ class CityLearnEnv(Environment, Env):
                 'mean': rewards.mean(axis=0).tolist()
             })
 
+            print(f'Episode: {self.episode_tracker.episode}, Rewards Sum: {self.__episode_rewards[-1]["sum"]}')
+
         else:
             pass
 

@@ -2,6 +2,7 @@ from typing import Any, List, Mapping, Union, Optional
 import numpy as np
 from citylearn.reward_function import RewardFunction
 
+
 class CustomReward(RewardFunction):
     """Calculates custom user-defined multi-agent reward.
 
@@ -34,11 +35,13 @@ class CustomReward(RewardFunction):
         """
         self.beta = beta
         self.gamma = gamma
-        pricing = [o['electricity_pricing'] for o in observations] 
-        net_electricity_consumption = [o['net_electricity_consumption'] for o in observations] 
+        pricing = [o['electricity_pricing'] for o in observations]
+        net_electricity_consumption = [o['net_electricity_consumption'] for o in observations]
         district_electricity_consumption = sum(net_electricity_consumption)
-        reward_agent = [(1-self.beta)*min((pricing[i]*(-1*net_electricity_consumption[i]))**3, 0) for i in range(len(net_electricity_consumption))]
-        reward_list = 10**2*(reward_agent - self.beta*(district_electricity_consumption**2)/len(net_electricity_consumption)**self.gamma)
+        reward_agent = [(1 - self.beta) * min((pricing[i] * (-1 * net_electricity_consumption[i])) ** 3, 0) for i in
+                        range(len(net_electricity_consumption))]
+        reward_list = 10 ** 2 * (reward_agent - self.beta * (district_electricity_consumption ** 2) / len(
+            net_electricity_consumption) ** self.gamma)
 
         if self.central_agent:
             reward = [reward_list.sum()]

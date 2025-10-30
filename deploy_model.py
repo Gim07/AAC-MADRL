@@ -14,7 +14,7 @@ from citylearn.agents.marlisa import MARLISA
 from citylearn.agents.rbc import PITemperatureController as RBC
 
 
-# from stable_baselines3 import SAC
+from stable_baselines3 import SAC as SAC_CENTRALIZED
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.base_class import BaseAlgorithm
 
@@ -154,7 +154,7 @@ def load_from_zip(model, zip_path: Path, map_location: Optional[str] = None, cas
 def derive_weights_zip(dataset_root: Path, model_type: str, beta: float, lr: float, gamma: float) -> Path:
     m = model_type.lower()
     zip_name = {"sac": "sac.zip",
-                "sac_centralized": "sac.zip",
+                "sac_centralized": "sac_centralized.zip",
                 "marlisa": "marlisa.zip",
                 "aac_madrl": "aac_madrl.zip"}.get(m, f"{m}.zip")
     return dataset_root / "save_models" / m / f"beta={beta}_gamma={gamma}" / f"lr={lr}" / zip_name
@@ -179,8 +179,8 @@ def run_model_and_save_obs(
     dataset_arg = _find_real_schema_for_env(dataset_anchor, outputs_root)
 
     # Env kwargs
-    # central = (model_type == "SAC_CENTRALIZED")
-    central = True
+    central = (model_type == "SAC_CENTRALIZED")
+    # central = True
     env_kwargs = {"central_agent": central}
     if sim_start is not None:
         env_kwargs["simulation_start_time_step"] = sim_start
@@ -207,7 +207,7 @@ def run_model_and_save_obs(
 
     env = CityLearnEnv(dataset_arg, **env_kwargs)
 
-    if env_kwargs['SB3']:
+    if env_kwargs['SB3'] and central:
         env = NormalizedObservationWrapper(env)
         env = StableBaselines3Wrapper(env)
 
@@ -222,7 +222,7 @@ def run_model_and_save_obs(
 
         if model_type in ("SAC", "SAC_CENTRALIZED"):
             # Load model from zip
-            model = SAC.load(
+            model = SAC_CENTRALIZED.load(
                 path=str(derive_weights_zip(dataset_root, model_type, beta, lr, gamma)),
                 env=env
             )
@@ -241,8 +241,10 @@ def run_model_and_save_obs(
         # Modello
         if model_type == "AAC_MADRL":
             model = AAC_MADRL(env, classes=aac_classes or {}, attend_heads=1, lr=lr, sample=False)
-        elif model_type in ("SAC", "SAC_CENTRALIZED"):
+        elif model_type == "SAC":
             model = SAC(env, lr=lr)
+        elif model_type == "SAC_CENTRALIZED":
+            model = SAC_CENTRALIZED(env, lr=lr)
         elif model_type == "MARLISA":
             model = MARLISA(env, lr=lr)
         elif model_type == "RBC":
@@ -424,7 +426,7 @@ if __name__ == "__main__":
         aac_classes={"dhw_storage": 21,
                      "electrical_storage": 21,
                      "heating_storage":21,
-                     "cooling_or_heating_device": 21},
+                     "heating_device": 11},
     )
 
 

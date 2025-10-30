@@ -5,9 +5,9 @@ from pathlib import Path
 import os
 import argparse
 import sys
-from citylearn.agents.sac import SAC as RLAgent
+# from citylearn.agents.sac import SAC as RLAgent
 #
-# from stable_baselines3 import SAC as RLAgent
+from stable_baselines3 import SAC as RLAgent
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.base_class import BaseAlgorithm
 
@@ -121,6 +121,10 @@ def maybe_init_wandb(args, config):
 def main():
     args = parse_args()
 
+    # check args.hidden_dimension is a list of int
+    if isinstance(args.hidden_dimension, str):
+        args.hidden_dimension = [int(x) for x in args.hidden_dimension.strip("[]").split(",")]
+
     # Risolvi dataset
     dataset_arg, mode = resolve_dataset_arg(args.dataset_name, args.data_dir)
     print(f"[dataset] modalità={mode} → {dataset_arg}")
@@ -204,7 +208,11 @@ def main():
 
         print('Training completed.')
 
-        # --- Save: SOLO ZIP → outputs/save_models/sac/beta/lr/sac.zip ---
+        save_dir = output_root / args.dataset_name / "save_models" / "sac_centralized" / f"beta={args.beta}_gamma={args.gamma}" / f"lr={args.lr}"
+        save_dir.mkdir(parents=True, exist_ok=True)
+        zip_file = save_dir / "sac_centralized.zip"
+
+        # --- Save: SOLO ZIP → outputs/save_models/sac_centralized/beta/lr/sac_centralized.zip ---
         dtype_arg = None if args.weights_dtype == "none" else args.weights_dtype
         print("dtype_arg:", dtype_arg)
         model.save(str(zip_file))
@@ -218,9 +226,10 @@ def main():
         # --- Train ---
         model.learn(episodes=args.episodes)
 
-        # --- Save: SOLO ZIP → outputs/save_models/sac/beta/lr/sac.zip ---
+        # --- Save: SOLO ZIP → outputs/save_models/sac_centralized/beta/lr/sac_centralized.zip ---
         dtype_arg = None if args.weights_dtype == "none" else args.weights_dtype
         model.save_models(zip_path=str(zip_file), dtype=dtype_arg)
+
     print("[OK] Zipped models at:", zip_file)
 
     if run is not None and wandb is not None:

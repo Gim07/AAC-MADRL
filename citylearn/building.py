@@ -1197,7 +1197,8 @@ class Building(Environment):
         storage_output = self.energy_from_cooling_storage[self.time_step]
         max_electric_power = self.downward_electrical_flexibility
         max_device_output = self.cooling_device.get_max_output_power(temperature, heating=False, max_electric_power=max_electric_power)
-        self.___demand_limit_check('cooling', demand, max_device_output)
+        if self.cooling_device.available_nominal_power !=0.0:
+            self.___demand_limit_check('cooling', demand, max_device_output)
         device_output = min(demand - storage_output, max_device_output)
         self.__energy_from_cooling_device[self.time_step] = device_output
         electricity_consumption = self.cooling_device.get_input_power(device_output, temperature, heating=False)

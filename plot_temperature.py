@@ -18,13 +18,14 @@ ALGOS = [
     'PI_RBC',
     # 'PID_RBC',
     # 'GB_PID_RBC',
-    'SAC',
+    # 'SAC',
+    'SAC_CENTRALIZED',
     'AAC-MADRL',
 ]  # <-- Indoor T con colori diversi + legenda
 district = 'CA'
 dataset_key = f"{district}_{N_BUILDINGS}_dynamics"
-beta = 0.2
-gamma = 3.5
+beta = 0.5
+gamma = 3.0
 lr = 0.0003
 season = 'winter'
 
@@ -43,7 +44,10 @@ ALGO_PATTERNS: Dict[str, List[str]] = {
         f"outputs/data/{dataset_key}/schema.json/obs/GB_PID_rbc/obs_building" + "_{i}.csv",
     ],
     'SAC': [
-        f"outputs/data/{dataset_key}/schema.json/obs/sac/beta={beta}_gamma={gamma}/lr={lr}/obs_building" + "_{i}.csv",
+        f"outputs/data/{dataset_key}/schema.json/obs/sac_centralized/beta={beta}_gamma={gamma}/lr={lr}/obs_building" + "_{i}.csv",
+    ],
+    'SAC_CENTRALIZED': [
+        f"outputs/data/{dataset_key}/schema.json/obs/sac_centralized/beta={beta}_gamma={gamma}/lr={lr}/obs_building" + "_{i}.csv",
     ],
     'AAC-MADRL': [
         f"outputs/data/{dataset_key}/schema.json/obs/aac_madrl/beta={beta}_gamma={gamma}/lr={lr}/obs_building" + "_{i}.csv",

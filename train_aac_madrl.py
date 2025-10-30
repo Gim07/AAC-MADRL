@@ -138,7 +138,7 @@ def main():
         "heating_storage": args.heating_storage,
         "dhw_storage": args.dhw_storage,
         "electrical_storage": args.electrical_storage,
-        "cooling_or_heating_device": args.cooling_or_heating_device,
+        "heating_device": args.heating_device,
     }
     # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 

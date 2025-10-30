@@ -19,7 +19,11 @@ class ComfortConsumptionDistrictRewardFixed(RewardFunction):
 
     # ---------- comfort helper ----------
     def _comfort_term(self, o: Mapping[str, Union[int, float]]) -> float:
+        """
+        Valid values of hvac mode are 0, 1, 2, 3 to indicate off, cooling mode, heating mode, and automatic mode.
+        """
         hvac_mode = int(o.get('hvac_mode', 0))
+
         Tin = float(o['indoor_dry_bulb_temperature'])
         band = self.band if self.band is not None else float(o['comfort_band'])
         if hvac_mode in (1, 2):
@@ -67,68 +71,31 @@ class ComfortConsumptionDistrictRewardFixed(RewardFunction):
         else:
             return rewards
 
+
 class ComfortCostCarbonReward(RewardFunction):
     """
     Multi-objective reward function balancing thermal comfort, electricity cost, and carbon emissions.
 
-    Reward = alpha * comfort + beta * cost + gamma * carbon + delta * district_penalty
-
-    Where:
-    - comfort: Penalty for temperature deviation from comfort band
-    - cost: Penalty for electricity consumption (import from grid)
-    - carbon: Penalty based on carbon intensity and net consumption
-    - district_penalty: Coordination term for grid stability
+    Reward = (1-β) * (alpha*comfort + cost) - β * (gamma*district_peak + district_carbon_emission)
 
     Parameters
     ----------
-    env_metadata : Mapping[str, Any]
-        General static information about the environment
-    alpha : float, default=0.3
-        Weight for comfort term (0-1)
-    beta : float, default=0.3
-        Weight for cost/consumption term (0-1)
-    gamma : float, default=0.3
-        Weight for carbon emission term (0-1)
-    delta : float, default=0.1
-        Weight for district coordination term (0-1)
-    band : Optional[float], default=None
-        Comfort band around setpoint. If None, uses building's comfort_band
-    consumption_exponent : float, default=3.0
-        Exponent for consumption penalty (higher = more aggressive)
-    carbon_exponent : float, default=2.0
-        Exponent for carbon penalty
-    normalize_agents : float, default=1.0
-        Exponent for normalizing district penalty by number of agents
+    env_metadata: Mapping[str, Any]:
+        General static information about the environment.
+
+    alpha: float
+        Weight for comfort cost in the reward function.
+    beta: float
+        Weight balancing between local and district-level objectives.
+    gamma: float
+        Exponent for scaling district-level penalties.
     """
 
-    def __init__(
-            self,
-            env_metadata: Mapping[str, Any],
-            alpha: float = 0.3,
-            beta: float = 0.3,
-            gamma: float = 0.3,
-            delta: float = 0.1,
-            band: Optional[float] = None,
-            consumption_exponent: float = 3.0,
-            carbon_exponent: float = 2.0,
-            normalize_agents: float = 1.0
-    ):
+    def __init__(self, env_metadata: Mapping[str, Any], beta: float, gamma: float, band: Optional[float] = None):
         super().__init__(env_metadata)
-
-        # Validate weights sum approximately to 1
-        total = alpha + beta + gamma + delta
-        if not (0.99 <= total <= 1.01):
-            print(f"Warning: Weights sum to {total:.3f}, not 1.0. Normalizing...")
-            alpha, beta, gamma, delta = alpha / total, beta / total, gamma / total, delta / total
-
-        self.alpha = float(alpha)
         self.beta = float(beta)
+        self.band = band  # se None, usa o['comfort_band']
         self.gamma = float(gamma)
-        self.delta = float(delta)
-        self.band = band
-        self.consumption_exponent = float(consumption_exponent)
-        self.carbon_exponent = float(carbon_exponent)
-        self.normalize_agents = float(normalize_agents)
 
     def _comfort_term(self, o: Mapping[str, Union[int, float]]) -> float:
         """
@@ -152,10 +119,34 @@ class ComfortCostCarbonReward(RewardFunction):
 
             delta = abs(Tin - sp)
             return -(delta ** 2)
-
-        else:  # HVAC off (mode 0)
+        elif hvac_mode == 3: # automatic mode
             sp_c = float(o['indoor_dry_bulb_temperature_cooling_set_point'])
             sp_h = float(o['indoor_dry_bulb_temperature_heating_set_point'])
+
+            assert sp_c == sp_h, "Set point di riscaldamento e raffreddamento devono essere uguali in modalità automatica"
+            sp = sp_c
+            band_high = sp + band
+            band_low = sp - band
+
+            # # Within comfort range
+            # if band_low <= Tin <= band_high:
+            #     return 0.0
+
+            # Outside comfort range
+            if Tin < band_low:
+                delta = band_low - Tin
+            elif Tin > band_high:
+                delta = band_high - Tin
+            else:
+                delta = 0.0
+
+            return -(delta ** 2)
+
+        else:
+            sp_c = float(o['indoor_dry_bulb_temperature_cooling_set_point'])
+            sp_h = float(o['indoor_dry_bulb_temperature_heating_set_point'])
+            assert sp_c == sp_h, "Set point di riscaldamento e raffreddamento devono essere uguali in modalità off"
+
             band_c = sp_c + band
             band_h = sp_h - band
 
@@ -171,98 +162,85 @@ class ComfortCostCarbonReward(RewardFunction):
 
             return -(delta ** 2)
 
-    def _cost_term(self, net_consumption: float) -> float:
+    def _cost_term(self, o: Mapping[str, Union[int, float]]) -> float:
         """
-        Calculate cost penalty based on electricity consumption.
+        Calculate electricity cost penalty.
 
-        Only penalizes import from grid (positive consumption).
-        Export to grid (negative consumption) is not penalized.
+        Returns negative electricity cost.
         """
-        if net_consumption > 0:
-            return -(net_consumption ** self.consumption_exponent)
-        else:
-            # Optionally reward export (but keep it small to avoid gaming)
-            return min(((-1.0) * net_consumption) ** self.consumption_exponent, 0.0)
+        electrical_pricing = float(o['electricity_pricing'])
+        net_electricity_consumption = float(o['net_electricity_consumption'])
+        electrical_cost = electrical_pricing * net_electricity_consumption
 
-    def _carbon_term(self, o: Mapping[str, Union[int, float]]) -> float:
+        fuel_pricing = float(o.get('fuel_pricing', 0.0))
+        net_fuel_consumption = float(o.get('net_fuel_consumption', 0.0))
+        fuel_cost = fuel_pricing * net_fuel_consumption
+
+        return -(electrical_cost + fuel_cost)
+
+    def _emission_term(self, o: Mapping[str, Union[int, float]]) -> float:
         """
         Calculate carbon emission penalty.
 
-        Carbon emissions = net_consumption * carbon_intensity
-        Only penalize when importing from grid (positive net consumption)
+        Returns carbon emissions.
         """
-        net_consumption = float(o['net_electricity_consumption'])
-        carbon_intensity = float(o.get('carbon_intensity', 0.5))  # kg CO2/kWh
+        electrical_carbon_intensity = float(o['carbon_intensity'])
+        net_electricity_consumption = float(o['net_electricity_consumption'])
+        electrical_emission = electrical_carbon_intensity * net_electricity_consumption
 
-        if net_consumption > 0:
-            # Importing from grid - penalize based on carbon intensity
-            carbon_emissions = net_consumption * carbon_intensity
-            return -(carbon_emissions ** self.carbon_exponent)
-        elif net_consumption < 0:
-            # Exporting to grid - small reward for avoiding carbon
-            # (assumes exported energy displaces grid carbon)
-            carbon_avoided = abs(net_consumption) * carbon_intensity
-            return min((carbon_avoided ** self.carbon_exponent) * 0.1, 0.5)
-        else:
-            return 0.0
+        fuel_carbon_intensity = float(o.get('fuel_carbon_intensity', 1.95 / (13.889 * 0.671)))
+        net_fuel_consumption = float(o.get('net_fuel_consumption', 0.0))
+        fuel_emission = fuel_carbon_intensity * net_fuel_consumption
 
-    def _district_term(self, observations: List[Mapping[str, Union[int, float]]]) -> float:
+        return -(electrical_emission + fuel_emission)
+
+    def _electricity_consumption_term(self, o: Mapping[str, Union[int, float]]) -> float:
         """
-        Calculate district-level coordination penalty.
+        Calculate total energy consumption penalty.
 
-        Penalizes high aggregate grid demand to encourage load shifting.
+        Returns negative total energy consumption.
         """
-        nets = [float(o['net_electricity_consumption']) for o in observations]
-        district_net = sum(nets)
+        net_electricity_consumption = float(o['net_electricity_consumption'])
 
-        # Normalize by number of agents to make comparable across different scales
-        n_agents = len(observations)
-        normalized_district = district_net / (n_agents ** self.normalize_agents)
-
-        # Quadratic penalty on positive district consumption
-        if normalized_district > 0:
-            return -(normalized_district ** 2)
-        else:
-            # Light penalty even for net export to encourage stability
-            return -(abs(normalized_district) ** 2) * 0.1
+        return - net_electricity_consumption
 
     def calculate(self, observations: List[Mapping[str, Union[int, float]]]) -> List[float]:
-        """
-        Calculate the multi-objective reward for each building/agent.
+        r"""Calculates reward.
 
         Parameters
         ----------
-        observations : List[Mapping[str, Union[int, float]]]
-            List of building observations at current timestep
+        observations: List[Mapping[str, Union[int, float]]]
+            List of all building observations at current :py:attr:`citylearn.citylearn.CityLearnEnv.
+            time_step` that are got from calling :py:meth:`citylearn.building.Building.observations`.
 
         Returns
         -------
-        List[float]
-            Reward for each agent (or single reward if central_agent=True)
+        reward: List[float]
+            Reward for transition to current timestep.
         """
+
+        term_rescaler = 10e-4
+
+        comfort = [self._comfort_term(o) for o in observations]
+        cost = [self._cost_term(o) for o in observations]
+        emission = [self._emission_term(o) for o in observations]
+        electricity_consumption = [self._electricity_consumption_term(o) for o in observations]
+
+        district_compsumption = sum(electricity_consumption) / term_rescaler
+        district_emission = sum(emission) / term_rescaler
+
         n_agents = len(observations)
-        nets = [float(o['net_electricity_consumption']) for o in observations]
+        district_compsumption /= (n_agents ** self.gamma)
+        district_emission /= (n_agents ** self.gamma)
 
-        # Calculate individual terms for each building
-        comfort_terms = [self._comfort_term(o) for o in observations]
-        cost_terms = [self._cost_term(net) for net in nets]
-        carbon_terms = [self._carbon_term(o) for o in observations]
+        # print("District consumption term:", district_compsumption)
+        # print("District emission term:", district_emission)
+        # print("Avg comfort:", np.mean(comfort))
+        # print("Avg cost:", np.mean(cost))
 
-        # Calculate shared district term
-        district_term = self._district_term(observations)
-
-        # Combine weighted terms
-        rewards = [
-            self.alpha * comfort_terms[i] +
-            self.beta * cost_terms[i] +
-            self.gamma * carbon_terms[i] +
-            self.delta * district_term
-            for i in range(n_agents)
-        ]
-
-        # Optional: Scale rewards for better learning
-        # Multiply by 10 to make rewards more significant
-        rewards = [r * 10.0 for r in rewards]
+        rewards = [((1 - self.beta) * (comfort[i] + cost[i]) +
+                   self.beta * (district_compsumption + district_emission))
+                   for i in range(n_agents)]
 
         if self.central_agent:
             return [float(sum(rewards))]
