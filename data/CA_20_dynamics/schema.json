@@ -1,7 +1,7 @@
 {
   "random_seed": 102040,
   "root_directory": null,
-  "central_agent": true,
+  "central_agent": false,
   "simulation_start_time_step": 0,
   "simulation_end_time_step": 8759,
   "episode_time_steps": null,

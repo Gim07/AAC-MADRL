@@ -5,9 +5,9 @@ from pathlib import Path
 import os
 import argparse
 import sys
-# from citylearn.agents.sac import SAC as RLAgent
+from citylearn.agents.sac import SAC as RLAgent
 #
-from stable_baselines3 import SAC as RLAgent
+# from stable_baselines3 import SAC as RLAgent
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.base_class import BaseAlgorithm
 
@@ -57,7 +57,7 @@ def parse_args():
         help=("Nome dataset CityLearn oppure path/cartella o solo NOME locale (risolto a .../schema.json). "
               "Default: data/schema.json."),
     )
-    p.add_argument("--central-agent", default=True, type=bool, help="Usa un agente centrale.")
+    p.add_argument("--central-agent", action="store_true", help="Usa un agente centrale.")
     p.add_argument("--episodes", default=12, type=int, help="Episodi di training.")
     p.add_argument("--lr", default=3e-4, type=float, help="Learning rate.")
     p.add_argument("--batch_size", default=256, type=int, help="Batch size.")
