@@ -6,8 +6,8 @@ import os
 import argparse
 import sys
 from citylearn.agents.sac import SAC as RLAgent
-#
-# from stable_baselines3 import SAC as RLAgent
+
+from stable_baselines3 import SAC as RLAgent
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.base_class import BaseAlgorithm
 
@@ -120,6 +120,11 @@ def maybe_init_wandb(args, config):
 
 def main():
     args = parse_args()
+
+    if args.central_agent:
+        from stable_baselines3 import SAC as RLAgent
+    else:
+        from citylearn.agents.sac import SAC as RLAgent
 
     # check args.hidden_dimension is a list of int
     if isinstance(args.hidden_dimension, str):

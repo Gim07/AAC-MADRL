@@ -632,6 +632,19 @@ class CityLearnEnv(Environment, Env):
         return pd.DataFrame([b.dhw_electricity_consumption for b in self.buildings]).sum(axis = 0, min_count = 1).to_numpy()
 
     @property
+    def heating_fuel_consumption(self) -> np.ndarray:
+        """Summed `Building.heating_fuel_consumption` time series, in [kWh]."""
+
+        return pd.DataFrame([b.heating_fuel_consumption for b in self.buildings]).sum(axis = 0, min_count = 1).to_numpy()
+
+    @property
+    def dhw_fuel_consumption(self) -> np.ndarray:
+        """Summed `Building.dhw_fuel_consumption` time series, in [kWh]."""
+
+        return pd.DataFrame([b.dhw_fuel_consumption for b in self.buildings]).sum(axis = 0, min_count = 1).to_numpy()
+
+
+    @property
     def cooling_storage_electricity_consumption(self) -> np.ndarray:
         """Summed `Building.cooling_storage_electricity_consumption` time series, in [kWh]."""
 

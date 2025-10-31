@@ -1026,6 +1026,8 @@ class Building(Environment):
             'cooling_electricity_consumption': self.cooling_electricity_consumption[self.time_step],
             'heating_electricity_consumption': self.heating_electricity_consumption[self.time_step] if isinstance(self.heating_device, (HeatPump, ElectricHeater)) else 0.0,
             'dhw_electricity_consumption': self.dhw_electricity_consumption[self.time_step] if isinstance(self.dhw_device, (HeatPump, ElectricHeater)) else 0.0,
+            'heating_fuel_consumption': self.heating_fuel_consumption[self.time_step] if isinstance(self.heating_device, GasBoiler) else 0.0,
+            'dhw_fuel_consumption': self.dhw_fuel_consumption[self.time_step] if isinstance(self.dhw_device, GasBoiler) else 0.0,
             'cooling_storage_electricity_consumption': self.cooling_storage_electricity_consumption[self.time_step],
             'heating_storage_electricity_consumption': self.heating_storage_electricity_consumption[self.time_step],
             'dhw_storage_electricity_consumption': self.dhw_storage_electricity_consumption[self.time_step],
@@ -1043,8 +1045,6 @@ class Building(Environment):
             'occupant_count': self.energy_simulation.occupant_count[self.time_step],
             'power_outage': self.__power_outage_signal[self.time_step],
             'net_fuel_consumption': self.net_fuel_consumption[self.time_step],
-            'heating_fuel_consumption': self.heating_fuel_consumption[self.time_step],
-            'dhw_fuel_consumption': self.dhw_fuel_consumption[self.time_step],
         }
     
     @staticmethod

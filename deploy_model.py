@@ -194,7 +194,7 @@ def run_model_and_save_obs(
     if reward_kwargs:
         env_kwargs["reward_function_kwargs"] = reward_kwargs
     try:
-        env_kwargs["SB3"] = True if issubclass(SAC, BaseAlgorithm) else False
+        env_kwargs["SB3"] = True if issubclass(SAC_CENTRALIZED, BaseAlgorithm) else False
     except TypeError:
         env_kwargs["SB3"] = False
 
@@ -287,11 +287,17 @@ def run_model_and_save_obs(
 
     df_obs_dist = pd.DataFrame({
         "cooling demand": env_results.cooling_demand,
+        "dhw demand": env_results.dhw_demand,
+        "heating demand": env_results.heating_demand,
+
         "cooling electricity consumption": env_results.cooling_electricity_consumption,
         "heating electricity consumption": env_results.heating_electricity_consumption,
-        "dhw demand": env_results.dhw_demand,
         "dhw electricity consumption": env_results.dhw_electricity_consumption,
         "dhw storage electricity consumption": env_results.dhw_storage_electricity_consumption,
+
+        "heating fuel consumption": env_results.heating_fuel_consumption,
+        "dhw fuel consumption": env_results.dhw_fuel_consumption,
+
         "positive dhw storage electricity consumption": pos_dhw,
         "negative dhw storage electricity consumption": neg_dhw,
         "electrical storage electricity consumption": env_results.electrical_storage_electricity_consumption,
@@ -305,10 +311,15 @@ def run_model_and_save_obs(
         "energy from heating device": env_results.energy_from_heating_device,
         "energy to electrical storage": env_results.energy_to_electrical_storage,
         "energy to non shiftable load": env_results.energy_to_non_shiftable_load,
+
         "net electricity consumption": env_results.net_electricity_consumption,
+        "net electricity cost": env_results.net_electricity_consumption_cost,
+        "net electricity emission": env_results.net_electricity_consumption_emission,
+
         "net fuel consumption": env_results.net_fuel_consumption,
         "net fuel cost": env_results.net_fuel_consumption_cost,
         "net fuel emission": env_results.net_fuel_consumption_emission,
+
         "positive net electricity consumption": pos_nec,
         "negative net electricity consumption": neg_nec,
         "net electricity consumption without storage": env_results.net_electricity_consumption_without_storage,
@@ -337,15 +348,22 @@ def run_model_and_save_obs(
         neg_nec_b = np.where(nec_b < 0, nec_b, 0)
 
         df_obs_b = pd.DataFrame({
+            "bld_id": [b.name] * len(b.cooling_demand),
             "cooling demand": b.cooling_demand,
             "heating demand": b.heating_demand,
+            "dhw demand": b.dhw_demand,
+
             "cooling electricity consumption": b.cooling_electricity_consumption,
             "heating electricity consumption": b.heating_electricity_consumption,
-            "dhw demand": b.dhw_demand,
             "dhw electricity consumption": b.dhw_electricity_consumption,
+
+            "heating fuel consumption": b.heating_fuel_consumption,
+            "dhw fuel consumption": b.dhw_fuel_consumption,
+
             "dhw storage electricity consumption": b.dhw_storage_electricity_consumption,
             "positive dhw storage electricity consumption": pos_dhw_b,
             "negative dhw storage electricity consumption": neg_dhw_b,
+
             "dhw soc storage": b.dhw_storage.soc if hasattr(b, "dhw_storage") else None,
             "dhw capacity": b.dhw_storage.capacity if hasattr(b, "dhw_storage") else None,
             "dhw stored energy (?)": (b.dhw_storage.soc * b.dhw_storage.capacity) if hasattr(b, "dhw_storage") else None,
@@ -363,7 +381,14 @@ def run_model_and_save_obs(
             "energy from heating device": b.energy_from_heating_device,
             "energy to electrical storage": b.energy_to_electrical_storage,
             "energy to non shiftable load": b.energy_to_non_shiftable_load,
+
             "net electricity consumption": b.net_electricity_consumption,
+            "net electricity cost": b.net_electricity_consumption_cost,
+            "net electricity emission": b.net_electricity_consumption_emission,
+            "net fuel consumption": b.net_fuel_consumption,
+            "net fuel cost": b.net_fuel_consumption_cost,
+            "net fuel emission": b.net_fuel_consumption_emission,
+
             "positive net electricity consumption": pos_nec_b,
             "negative net electricity consumption": neg_nec_b,
             "net electricity consumption without storage": b.net_electricity_consumption_without_storage,

@@ -224,13 +224,13 @@ class ComfortCostCarbonReward(RewardFunction):
         comfort = [self._comfort_term(o) for o in observations]
         cost = [self._cost_term(o) for o in observations]
         emission = [self._emission_term(o) for o in observations]
-        electricity_consumption = [self._electricity_consumption_term(o) for o in observations]
+        # electricity_consumption = [self._electricity_consumption_term(o) for o in observations]
 
-        district_compsumption = sum(electricity_consumption) / term_rescaler
+        # district_compsumption = sum(electricity_consumption) / term_rescaler
         district_emission = sum(emission) / term_rescaler
 
         n_agents = len(observations)
-        district_compsumption /= (n_agents ** self.gamma)
+        # district_compsumption /= (n_agents ** self.gamma)
         district_emission /= (n_agents ** self.gamma)
 
         # print("District consumption term:", district_compsumption)
@@ -239,7 +239,7 @@ class ComfortCostCarbonReward(RewardFunction):
         # print("Avg cost:", np.mean(cost))
 
         rewards = [((1 - self.beta) * (comfort[i] + cost[i]) +
-                   self.beta * (district_compsumption + district_emission))
+                   self.beta * district_emission)
                    for i in range(n_agents)]
 
         if self.central_agent:

@@ -110,6 +110,7 @@ def load_building_algo(i: int, algo: str) -> Optional[pd.DataFrame]:
     df = df.copy()
     df.index = idx
 
+
     col_tin = find_col(df, CAND_COLS["tin"])
     col_sp = find_col(df, CAND_COLS["sp"])
     col_bd = find_col(df, CAND_COLS["band"])

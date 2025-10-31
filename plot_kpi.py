@@ -8,8 +8,8 @@ from math import ceil
 n_buildings = 20
 district = "CA"
 lr = 0.0003
-beta = 0.2
-gamma = 3.5
+beta = 0.5
+gamma = 3.0
 
 dataset_key = f"{district}_{n_buildings}_dynamics"
 outputs_root = Path.cwd() / "outputs" / "data"
@@ -22,25 +22,29 @@ kpi_files = {
     "PI_RBC": kpi_dir / f"pi_rbc_lr={lr}.csv",
     # "PID_RBC": kpi_dir / f"pid_rbc_lr={lr}.csv",
     # "GB_PID_RBC": kpi_dir / f"gb_pid_rbc_lr={lr}.csv",
-    "SAC": kpi_dir / f"sac_lr={lr}.csv",
-    "AAC_MADRL": kpi_dir / f"aac-madrl_lr={lr}.csv",
+    # "SAC": kpi_dir / f"sac_lr={lr}.csv",
+    # "SAC_CENTRALIZED": kpi_dir / f"sac_centralized_lr={lr}.csv",
+    # "AAC_MADRL": kpi_dir / f"aac-madrl_lr={lr}.csv",
 }
 
 # --- MODIFICA INIZIO ---
 # Ordine desiderato delle KPI (aggiornato per includere tutte le 12 colonne)
 KPI_ORDER = [
-    "Import",
-    "Variance",
-    "Daily Peak Average",
     "Avg Num Comfort Violations",
     "Avg Comfort Violation Above (°C)",
     "Avg Comfort Violation Below (°C)",
     "Avg Num Comfort Violations Above",
     "Avg Num Comfort Violations Below",
-    "Fuel Import",
-    "Fuel Variance",
-    "Fuel Cost",
-    "Fuel Emissions",
+    "Electricity Import",
+    "Electricity Variance",
+    "Electricity Cost",
+    "Electricity Emissions",
+    "Daily Peak Average",
+    # --- NEW FUEL KPIs ---
+    "Fuel Import",  # Total Fuel Consumption
+    "Fuel Variance",  # Fuel Consumption Variance
+    "Fuel Cost",  # Total Fuel Cost (optional, if data exists)
+    "Fuel Emissions",  # Total Fuel Emissions (optional, if data exists)
 ]
 # --- MODIFICA FINE ---
 

@@ -8,12 +8,12 @@ from typing import List, Optional, Tuple
 ALGO_DIR = {
     # "AAC-MADRL": "aac_madrl",
     # "SAC": "sac",
-    "SAC_CENTRALIZED": "sac_centralized",
+    # "SAC_CENTRALIZED": "sac_centralized",
     # "P_RBC": "P_rbc",
-    # "PI_RBC": "PI_rbc",
-    "PID_RBC": "PID_rbc",
+    "PI_RBC": "PI_rbc",
+    # "PID_RBC": "PID_rbc",
     # "GB_PID_RBC": "GB_PID_rbc",
-    "AAC-MADRL": "aac_madrl",
+    # "AAC-MADRL": "aac_madrl",
 }
 
 def find_obs_csv(outputs_root: Path, dataset_key: str, algorithm: str, beta: float, lr: float, gamma: float) -> Path:
@@ -53,14 +53,16 @@ def load_or_init_kpi_csv(kpi_path: Path) -> pd.DataFrame:
             return pd.read_csv(kpi_path, index_col=0)
 
     idx = [
-        "Import",
-        "Variance",
-        "Daily Peak Average",
         "Avg Num Comfort Violations",
         "Avg Comfort Violation Above (°C)",
         "Avg Comfort Violation Below (°C)",
         "Avg Num Comfort Violations Above",
         "Avg Num Comfort Violations Below",
+        "Electricity Import",
+        "Electricity Variance",
+        "Electricity Cost",
+        "Electricity Emissions",
+        "Daily Peak Average",
         # --- NEW FUEL KPIs ---
         "Fuel Import",  # Total Fuel Consumption
         "Fuel Variance",  # Fuel Consumption Variance
@@ -209,6 +211,8 @@ def process_kpi(outputs_root: Path, dataset_key: str, algorithm: str, kpi_dir: P
     # --- Find relevant columns ---
     col_net_elec = _pick_col(df_obs, ["net electricity consumption", "net_electricity_consumption"])
     col_pos_elec = _pick_col(df_obs, ["positive net electricity consumption", "positive_net_electricity_consumption"])
+    col_elec_cost = _pick_col(df_obs, ["net electricity consumption cost", "net electricity cost", "Net Electricity Consumption Cost", "total_electricity_cost"])
+    col_elec_emis = _pick_col(df_obs, ["net electricity consumption emission", "net electricity emission", "Net Electricity Consumption Emission", "total_electricity_emissions"])
     col_fuel_cons = _pick_col(df_obs, FUEL_COLS["cons"])
     col_fuel_cost = _pick_col(df_obs, FUEL_COLS["cost"])
     col_fuel_emis = _pick_col(df_obs, FUEL_COLS["emis"])
@@ -216,17 +220,31 @@ def process_kpi(outputs_root: Path, dataset_key: str, algorithm: str, kpi_dir: P
     # --- Basic Electricity KPIs ---
     if col_pos_elec:
         total_consumption = float(np.sum(pd.to_numeric(df_obs[col_pos_elec], errors='coerce').fillna(0).clip(lower=0)))
-        df_kpi.loc["Import", "District"] = total_consumption
+        df_kpi.loc["Electricity Import", "District"] = total_consumption
     else:
         print(f"Warning: Positive electricity consumption column not found for {algorithm}.")
-        df_kpi.loc["Import", "District"] = np.nan
+        df_kpi.loc["Electricity Import", "District"] = np.nan
 
     if col_net_elec:
         variance = float(np.var(pd.to_numeric(df_obs[col_net_elec], errors='coerce').fillna(0)))
-        df_kpi.loc["Variance", "District"] = variance
+        df_kpi.loc["Electricity Variance", "District"] = variance
     else:
         print(f"Warning: Net electricity consumption column not found for {algorithm}.")
-        df_kpi.loc["Variance", "District"] = np.nan
+        df_kpi.loc["Electricity Variance", "District"] = np.nan
+
+    if col_elec_cost:
+        elec_cost = float(np.sum(pd.to_numeric(df_obs[col_elec_cost], errors='coerce').fillna(0).clip(lower=0)))
+        df_kpi.loc["Electricity Cost", "District"] = elec_cost
+    else:
+        print(f"Warning: Electricity cost column not found for {algorithm}.")
+        df_kpi.loc["Electricity Cost", "District"] = np.nan
+
+    if col_elec_emis:
+        elec_emis = float(np.sum(pd.to_numeric(df_obs[col_elec_emis], errors='coerce').fillna(0).clip(lower=0)))
+        df_kpi.loc["Electricity Emissions", "District"] = elec_emis
+    else:
+        print(f"Warning: Electricity emissions column not found for {algorithm}.")
+        df_kpi.loc["Electricity Emissions", "District"] = np.nan
 
     # --- NEW: Fuel KPIs ---
     if col_fuel_cons:
@@ -298,9 +316,9 @@ if __name__ == "__main__":
         "PI_RBC",
         # "PID_RBC",
         # "SAC",
-        "SAC_CENTRALIZED",
+        # "SAC_CENTRALIZED",
         # "GB_PID_RBC",
-        "AAC-MADRL",
+        # "AAC-MADRL",
         ]
     beta = 0.5
     gamma = 3.0
