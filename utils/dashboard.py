@@ -39,10 +39,10 @@ COLUMN_MAPPINGS = {
     "tout": ["outdoor_dry_bulb_temperature", "outdoor_temperature", "T_out"],
     "sp": ["cooling_sp", "cooling_setpoint", "setpoint"],
     "band": ["comfort_band"],
-    "cool_demand": ["cooling demand", "cooling_demand", "cool_dmd", "cooling_power", "cooling_energy"],
-    "heat_demand": ["heating demand", "heating_demand", "heat_demand", "heating_power", "heating_energy"],
+    "cooling demand": ["cooling demand", "cooling_demand", "cool_dmd", "cooling_power", "cooling_energy"],
+    "heating demand": ["heating demand", "heating_demand", "heating demand", "heating_power", "heating_energy"],
     # ***FIX 2: Added dhw_demand mapping***
-    "dhw_demand": ["dhw demand", "dhw_demand", "dhw_power", "dhw_energy"],
+    "dhw demand": ["dhw demand", "dhw_demand", "dhw_power", "dhw_energy"],
 }
 
 # ***FIX 3: Updated action columns***
@@ -214,6 +214,31 @@ def find_column(df: pd.DataFrame, candidates: List[str]) -> Optional[str]:
     return None
 
 
+def color_to_rgba(color: str, alpha: float = 0.1) -> str:
+    """
+    Convert a color (hex or rgb) to rgba format.
+
+    Args:
+        color: Color in hex (#RRGGBB) or rgb(r,g,b) format
+        alpha: Alpha transparency value (0-1)
+
+    Returns:
+        Color in rgba(r,g,b,a) format
+    """
+    if color.startswith('rgb('):
+        # Already in rgb format: rgb(102, 194, 165)
+        # Extract numbers and add alpha
+        rgb_values = color[4:-1]  # Remove 'rgb(' and ')'
+        return f'rgba({rgb_values}, {alpha})'
+    elif color.startswith('#'):
+        # Hex format: convert to rgb first
+        rgb = px.colors.hex_to_rgb(color)
+        return f'rgba({rgb[0]}, {rgb[1]}, {rgb[2]}, {alpha})'
+    else:
+        # Fallback: return as is with some default
+        return f'rgba(100, 100, 100, {alpha})'
+
+
 def load_district_observation_data(dataset: str, algorithm: Dict, season: str = "winter") -> Optional[pd.DataFrame]:
     """Load district-level observation data (aggregated data for all buildings)."""
     algo_path = Path(algorithm['path']) if isinstance(algorithm['path'], str) else algorithm['path']
@@ -288,13 +313,13 @@ def load_observation_data(dataset: str, algorithm: Dict, building_id: int,
             standardized["comfort_high"] = standardized["sp"] + standardized["band"]
 
         # Clip demands to non-negative
-        if "cool_demand" in standardized.columns:
-            standardized["cool_demand"] = standardized["cool_demand"].clip(lower=0)
-        if "heat_demand" in standardized.columns:
-            standardized["heat_demand"] = standardized["heat_demand"].clip(lower=0)
-        # ***FIX 2: Clip dhw_demand***
-        if "dhw_demand" in standardized.columns:
-            standardized["dhw_demand"] = standardized["dhw_demand"].clip(lower=0)
+        if "cooling demand" in standardized.columns:
+            standardized["cooling demand"] = standardized["cooling demand"].clip(lower=0)
+        if "heating demand" in standardized.columns:
+            standardized["heating demand"] = standardized["heating demand"].clip(lower=0)
+        # ***FIX 2: Clip dhw demand***
+        if "dhw demand" in standardized.columns:
+            standardized["dhw demand"] = standardized["dhw demand"].clip(lower=0)
 
         print(f"[DEBUG] Standardized columns: {list(standardized.columns)}")
         return standardized
@@ -441,26 +466,26 @@ def calculate_observation_kpis(df: pd.DataFrame) -> Dict[str, float]:
         kpis["Fuel Emissions"] = float(fuel_emis)
 
     # ========== ENERGY DEMANDS (legacy for backward compatibility) ==========
-    if "cool_demand" in df.columns:
-        kpis["Total Cooling Demand"] = df["cool_demand"].sum()
-        kpis["Avg Cooling Demand"] = df["cool_demand"].mean()
-        kpis["Max Cooling Demand"] = df["cool_demand"].max()
+    if "cooling demand" in df.columns:
+        kpis["Total Cooling Demand"] = df["cooling demand"].sum()
+        kpis["Avg Cooling Demand"] = df["cooling demand"].mean()
+        kpis["Max Cooling Demand"] = df["cooling demand"].max()
 
-    if "heat_demand" in df.columns:
-        kpis["Total Heating Demand"] = df["heat_demand"].sum()
-        kpis["Avg Heating Demand"] = df["heat_demand"].mean()
-        kpis["Max Heating Demand"] = df["heat_demand"].max()
+    if "heating demand" in df.columns:
+        kpis["Total Heating Demand"] = df["heating demand"].sum()
+        kpis["Avg Heating Demand"] = df["heating demand"].mean()
+        kpis["Max Heating Demand"] = df["heating demand"].max()
 
     # ***FIX 2: Add DHW KPIs***
-    if "dhw_demand" in df.columns:
-        kpis["Total DHW Demand"] = df["dhw_demand"].sum()
-        kpis["Avg DHW Demand"] = df["dhw_demand"].mean()
-        kpis["Max DHW Demand"] = df["dhw_demand"].max()
+    if "dhw demand" in df.columns:
+        kpis["Total DHW Demand"] = df["dhw demand"].sum()
+        kpis["Avg DHW Demand"] = df["dhw demand"].mean()
+        kpis["Max DHW Demand"] = df["dhw demand"].max()
 
-    if "cool_demand" in df.columns and "heat_demand" in df.columns:
-        total_energy = df["cool_demand"].sum() + df["heat_demand"].sum()
-        if "dhw_demand" in df.columns:
-            total_energy += df["dhw_demand"].sum()
+    if "cooling demand" in df.columns and "heating demand" in df.columns:
+        total_energy = df["cooling demand"].sum() + df["heating demand"].sum()
+        if "dhw demand" in df.columns:
+            total_energy += df["dhw demand"].sum()
         kpis["Total Energy Demand"] = total_energy
 
     return kpis
@@ -1046,7 +1071,7 @@ def render_temperature_tab(dataset, selected_buildings, selected_configs, season
 
     fig.update_layout(
         title=dict(
-            text=f"Temperature Profile - {len(selected_buildings)} Building(s), {len(selected_configs)} Configuration(s)",
+            text=f"",
             font=dict(size=18, color='#2c3e50')
         ),
         hovermode='x unified',
@@ -1109,42 +1134,36 @@ def render_demands_tab(dataset, selected_buildings, selected_configs, season,
             color = COLORS[i % len(COLORS)]
 
             # Cooling demand
-            if 'cool_demand' in df_filtered.columns:
+            if 'cooling demand' in df_filtered.columns:
                 fig.add_trace(go.Scatter(
                     x=df_filtered.index,
-                    y=df_filtered['cool_demand'],
+                    y=df_filtered['cooling demand'],
                     name=legend_name + (f" - B{building_id}" if n_buildings > 1 else ""),
                     line=dict(color=color, width=2.5),
                     mode='lines',
-                    showlegend=(bldg_idx == 0),
-                    fill='tozeroy',
-                    fillcolor=f'rgba{tuple(list(px.colors.hex_to_rgb(color)) + [0.1])}'
+                    showlegend=(bldg_idx == 0)
                 ), row=row_cooling, col=1)
 
             # Heating demand
-            if 'heat_demand' in df_filtered.columns:
+            if 'heating demand' in df_filtered.columns:
                 fig.add_trace(go.Scatter(
                     x=df_filtered.index,
-                    y=df_filtered['heat_demand'],
+                    y=df_filtered['heating demand'],
                     name=legend_name + (f" - B{building_id}" if n_buildings > 1 else ""),
-                    line=dict(color=color, width=2.5, dash='dash'),
+                    line=dict(color=color, width=2.5),
                     mode='lines',
-                    showlegend=False,
-                    fill='tozeroy',
-                    fillcolor=f'rgba{tuple(list(px.colors.hex_to_rgb(color)) + [0.1])}'
+                    showlegend=False
                 ), row=row_heating, col=1)
 
-            # ***FIX 2: Add DHW demand plot***
-            if 'dhw_demand' in df_filtered.columns:
+            # DHW demand
+            if 'dhw demand' in df_filtered.columns:
                 fig.add_trace(go.Scatter(
                     x=df_filtered.index,
-                    y=df_filtered['dhw_demand'],
+                    y=df_filtered['dhw demand'],
                     name=legend_name + (f" - B{building_id}" if n_buildings > 1 else ""),
-                    line=dict(color=color, width=2.5, dash='dot'),
+                    line=dict(color=color, width=2.5),
                     mode='lines',
-                    showlegend=False,
-                    fill='tozeroy',
-                    fillcolor=f'rgba{tuple(list(px.colors.hex_to_rgb(color)) + [0.1])}'
+                    showlegend=False
                 ), row=row_dhw, col=1)
 
     # Update axes
@@ -1791,10 +1810,10 @@ def render_comparison_tab(dataset, selected_buildings, selected_configs, season,
                         district_comfort_violations += violations
 
                     # Energy (***FIX 2: Updated to include DHW***)
-                    if "cool_demand" in df_filtered.columns and "heat_demand" in df_filtered.columns:
-                        energy = df_filtered["cool_demand"].sum() + df_filtered["heat_demand"].sum()
-                        if "dhw_demand" in df_filtered.columns:
-                            energy += df_filtered["dhw_demand"].sum()
+                    if "cooling demand" in df_filtered.columns and "heating demand" in df_filtered.columns:
+                        energy = df_filtered["cooling demand"].sum() + df_filtered["heating demand"].sum()
+                        if "dhw demand" in df_filtered.columns:
+                            energy += df_filtered["dhw demand"].sum()
                         district_total_energy += energy
 
                     # Electricity cost
