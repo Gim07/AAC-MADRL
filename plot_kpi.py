@@ -8,8 +8,8 @@ from math import ceil
 n_buildings = 20
 district = "CA"
 lr = 0.0003
-beta = 0.5
-gamma = 3.0
+beta = 0.2
+gamma = 2.0
 
 dataset_key = f"{district}_{n_buildings}_dynamics"
 outputs_root = Path.cwd() / "outputs" / "data"
@@ -22,9 +22,9 @@ kpi_files = {
     "PI_RBC": kpi_dir / f"pi_rbc_lr={lr}.csv",
     # "PID_RBC": kpi_dir / f"pid_rbc_lr={lr}.csv",
     # "GB_PID_RBC": kpi_dir / f"gb_pid_rbc_lr={lr}.csv",
-    # "SAC": kpi_dir / f"sac_lr={lr}.csv",
-    # "SAC_CENTRALIZED": kpi_dir / f"sac_centralized_lr={lr}.csv",
-    # "AAC_MADRL": kpi_dir / f"aac-madrl_lr={lr}.csv",
+    "SAC": kpi_dir / f"sac_lr={lr}.csv",
+    "SAC_CENTRALIZED": kpi_dir / f"sac_centralized_lr={lr}.csv",
+    "AAC_MADRL": kpi_dir / f"aac-madrl_lr={lr}.csv",
 }
 
 # --- MODIFICA INIZIO ---

@@ -7,13 +7,13 @@ from typing import List, Optional, Tuple
 
 ALGO_DIR = {
     # "AAC-MADRL": "aac_madrl",
-    # "SAC": "sac",
-    # "SAC_CENTRALIZED": "sac_centralized",
+    "SAC": "sac",
+    "SAC_CENTRALIZED": "sac_centralized",
     # "P_RBC": "P_rbc",
     "PI_RBC": "PI_rbc",
     # "PID_RBC": "PID_rbc",
     # "GB_PID_RBC": "GB_PID_rbc",
-    # "AAC-MADRL": "aac_madrl",
+    "AAC-MADRL": "aac_madrl",
 }
 
 def find_obs_csv(outputs_root: Path, dataset_key: str, algorithm: str, beta: float, lr: float, gamma: float) -> Path:
@@ -315,13 +315,13 @@ if __name__ == "__main__":
         # "P_RBC",
         "PI_RBC",
         # "PID_RBC",
-        # "SAC",
-        # "SAC_CENTRALIZED",
+        "SAC",
+        "SAC_CENTRALIZED",
         # "GB_PID_RBC",
-        # "AAC-MADRL",
+        "AAC-MADRL",
         ]
-    beta = 0.5
-    gamma = 3.0
+    beta = 0.2
+    gamma = 2.0
     dataset = "CA"  # per comporre dataset_key
     season = "winter"
     start_date = "2023-01-01 00:00:00"
