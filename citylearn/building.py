@@ -8,7 +8,7 @@ from citylearn.base import Environment, EpisodeTracker
 from citylearn.data import CarbonIntensity, EnergySimulation, Pricing, TOLERANCE, Weather, ZERO_DIVISION_PLACEHOLDER
 from citylearn.dynamics import Dynamics, LSTMDynamics
 from citylearn.electric_vehicle_charger import Charger
-from citylearn.energy_model import Battery, ElectricDevice, ElectricHeater, HeatPump, PV, StorageTank, FuelCombustionDevice, GasBoiler
+from citylearn.energy_model import Battery, ElectricDevice, ElectricHeater, HeatPump, PV, StorageTank, GasBoiler
 from citylearn.occupant import LogisticRegressionOccupant, Occupant
 from citylearn.power_outage import PowerOutage
 from citylearn.preprocessing import Normalize, PeriodicNormalization
@@ -50,6 +50,8 @@ class Building(Environment):
         Electric device for meeting space cooling demand and charging `cooling_storage`.
     heating_device : Union[HeatPump, ElectricHeater], optional
         Electric device for meeting space heating demand and charging `heating_storage`.
+    heating_fuel_device: GasBoiler, optional
+        Fuel Device for meeting space heating demand and charging `heating_storage`.
     pv : PV, optional
         PV object for offsetting electricity demand from grid.
     name : str, optional
@@ -86,7 +88,9 @@ class Building(Environment):
             pricing: Pricing = None, dhw_storage: StorageTank = None, cooling_storage: StorageTank = None,
             heating_storage: StorageTank = None, electrical_storage: Battery = None,
             dhw_device: Union[HeatPump, ElectricHeater, GasBoiler] = None, cooling_device: HeatPump = None,
-            heating_device: Union[HeatPump, ElectricHeater, GasBoiler] = None, pv: PV = None, name: str = None,
+            heating_device: Union[HeatPump, ElectricHeater] = None,
+            heating_fuel_device: GasBoiler = None,
+            pv: PV = None, name: str = None,
             maximum_temperature_delta: float = None, observation_space_limit_delta: float = None,
             demand_observation_limit_factor: float = None, simulate_power_outage: bool = None,
             stochastic_power_outage: bool = None, stochastic_power_outage_model: PowerOutage = None,
@@ -100,6 +104,7 @@ class Building(Environment):
         self.dhw_device = dhw_device
         self.cooling_device = cooling_device
         self.heating_device = heating_device
+        self.heating_fuel_device = heating_fuel_device
         self.__non_shiftable_load_device = ElectricDevice(0.0)
         self.pv = pv
         super().__init__(
@@ -202,6 +207,12 @@ class Building(Environment):
         """Electric device for meeting space heating demand and charging `heating_storage`."""
 
         return self.__heating_device
+
+    @property
+    def heating_fuel_device(self) -> GasBoiler:
+        """Fuel Device for meeting space heating demand and charging `heating_storage`."""
+
+        return self.__heating_fuel_device
 
     @property
     def non_shiftable_load_device(self) -> ElectricDevice:
@@ -379,8 +390,8 @@ class Building(Environment):
     @property
     def heating_fuel_consumption(self) -> np.ndarray:
         """`heating_device` (if GasBoiler) net fuel consumption time series, in [kWh]."""
-        if isinstance(self.heating_device, GasBoiler):
-            return self.heating_device.fuel_consumption[:self.time_step + 1]
+        if isinstance(self.heating_fuel_device, GasBoiler):
+            return self.heating_fuel_device.fuel_consumption[:self.time_step + 1]
         else:
             return np.zeros(self.time_step + 1, dtype='float32')
 
@@ -438,7 +449,7 @@ class Building(Environment):
             self.weather.outdoor_dry_bulb_temperature[:self.time_step + 1], False)
 
     @property
-    def heating_storage_electricity_consumption(self) -> np.ndarray:
+    def heating_storage_electricity_consumption(self):
         """`heating_storage` net electricity consumption time series, in [kWh]. 
         
         Positive values indicate `heating_device` electricity consumption to charge `heating_storage` while negative values indicate avoided `heating_device` 
@@ -455,7 +466,20 @@ class Building(Environment):
         return consumption
 
     @property
-    def dhw_storage_electricity_consumption(self) -> np.ndarray:
+    def heating_storage_fuel_consumption(self):
+        """`heating_storage` net fuel consumption time series, in [kWh].
+
+        Positive values indicate `heating_fuel_device` fuel consumption to charge `heating_storage` while negative values indicate avoided `heating_fuel_device`
+        fuel consumption by discharging `heating_storage` to meet `heating_demand`.
+        """
+
+        if isinstance(self.heating_fuel_device, GasBoiler):
+            return self.heating_fuel_device.get_input_power(self.heating_storage.energy_balance[:self.time_step + 1])
+        else:
+            return np.zeros(self.time_step + 1, dtype='float32')
+
+    @property
+    def dhw_storage_electricity_consumption(self):
         """`dhw_storage` net electricity consumption time series, in [kWh]. 
         
         Positive values indicate `dhw_device` electricity consumption to charge `dhw_storage` while negative values indicate avoided `dhw_device` 
@@ -471,6 +495,19 @@ class Building(Environment):
             consumption = self.dhw_device.get_input_power(self.dhw_storage.energy_balance[:self.time_step + 1])
 
         return consumption
+
+    @property
+    def dhw_storage_fuel_consumption(self) -> np.ndarray:
+        """`dhw_storage` net fuel consumption time series, in [kWh].
+
+        Positive values indicate `dhw_device` fuel consumption to charge `dhw_storage` while negative values indicate avoided `dhw_device`
+        fuel consumption by discharging `dhw_storage` to meet `dhw_demand`.
+        """
+
+        if isinstance(self.dhw_device, GasBoiler):
+            return self.dhw_device.get_input_power(self.dhw_storage.energy_balance[:self.time_step + 1])
+        else:
+            return np.zeros(self.time_step + 1, dtype='float32')
 
     @property
     def electrical_storage_electricity_consumption(self) -> np.ndarray:
@@ -489,6 +526,18 @@ class Building(Environment):
         """Energy supply from `heating_device` to `heating_storage` time series, in [kWh]."""
 
         return self.heating_storage.energy_balance.clip(min=0)[:self.time_step + 1]
+
+    @property
+    def energy_from_heating_fuel_device_to_heating_storage(self) -> np.ndarray:
+        """Energy supply from `heating_fuel_device` to `heating_storage` time series, in [kWh]."""
+
+        return self.heating_storage.energy_balance.clip(min=0)[:self.time_step + 1]
+
+    @property
+    def energy_from_dhw_fuel_device_to_dhw_storage(self) -> np.ndarray:
+        """Energy supply from `dhw_fuel_device` to `dhw_storage` time series, in [kWh]."""
+
+        return self.dhw_storage.energy_balance.clip(min=0)[:self.time_step + 1]
 
     @property
     def energy_from_dhw_device_to_dhw_storage(self) -> np.ndarray:
@@ -515,10 +564,22 @@ class Building(Environment):
         return self.__energy_from_heating_device[:self.time_step + 1]
 
     @property
+    def energy_from_heating_fuel_device(self) -> np.ndarray:
+        """Energy supply from `heating_fuel_device` to building time series, in [kWh]."""
+
+        return self.__energy_from_heating_fuel_device[:self.time_step + 1]
+
+    @property
     def energy_from_dhw_device(self) -> np.ndarray:
         """Energy supply from `dhw_device` to building time series, in [kWh]."""
 
         return self.__energy_from_dhw_device[:self.time_step + 1]
+
+    @property
+    def energy_from_dhw_fuel_device(self) -> np.ndarray:
+        """Energy supply from `dhw_fuel_device` to building time series, in [kWh]."""
+
+        return self.__energy_from_dhw_fuel_device[:self.time_step + 1]
 
     @property
     def energy_to_non_shiftable_load(self) -> np.ndarray:
@@ -749,6 +810,10 @@ class Building(Environment):
     def heating_device(self, heating_device: Union[HeatPump, ElectricHeater, GasBoiler]):
         self.__heating_device = HeatPump(0.0) if heating_device is None else heating_device
 
+    @heating_fuel_device.setter
+    def heating_fuel_device(self, heating_fuel_device: GasBoiler):
+        self.__heating_fuel_device = GasBoiler(0.0) if heating_fuel_device is None else heating_fuel_device
+
     @pv.setter
     def pv(self, pv: PV):
         self.__pv = PV(0.0) if pv is None else pv
@@ -818,6 +883,7 @@ class Building(Environment):
         Environment.random_seed.fset(self, seed)
         self.cooling_device.random_seed = self.random_seed
         self.heating_device.random_seed = self.random_seed
+        self.heating_fuel_device.random_seed = self.random_seed
         self.dhw_device.random_seed = self.random_seed
         self.cooling_storage.random_seed = self.random_seed
         self.heating_storage.random_seed = self.random_seed
@@ -829,6 +895,7 @@ class Building(Environment):
         Environment.episode_tracker.fset(self, episode_tracker)
         self.cooling_device.episode_tracker = self.episode_tracker
         self.heating_device.episode_tracker = self.episode_tracker
+        self.heating_fuel_device.episode_tracker = self.episode_tracker
         self.dhw_device.episode_tracker = self.episode_tracker
         self.cooling_storage.episode_tracker = self.episode_tracker
         self.heating_storage.episode_tracker = self.episode_tracker
@@ -847,6 +914,7 @@ class Building(Environment):
             'maximum_temperature_delta': self.maximum_temperature_delta,
             'cooling_device': self.cooling_device.get_metadata(),
             'heating_device': self.heating_device.get_metadata(),
+            'heating_fuel_device': self.heating_fuel_device.get_metadata(),
             'dhw_device': self.dhw_device.get_metadata(),
             'non_shiftable_load_device': self.non_shiftable_load_device.get_metadata(),
             'cooling_storage': self.cooling_storage.get_metadata(),
@@ -1020,7 +1088,7 @@ class Building(Environment):
                 'electrical_storage_soc':self.electrical_storage.soc[self.time_step],
             },
             'cooling_demand': self.__energy_from_cooling_device[self.time_step] + abs(min(self.cooling_storage.energy_balance[self.time_step], 0.0)),
-            'heating_demand': self.__energy_from_heating_device[self.time_step] + abs(min(self.heating_storage.energy_balance[self.time_step], 0.0)),
+            'heating_demand': self.__energy_from_heating_device[self.time_step] + self.__energy_from_heating_fuel_device[self.time_step] + abs(min(self.heating_storage.energy_balance[self.time_step], 0.0)),
             'dhw_demand': self.__energy_from_dhw_device[self.time_step] + abs(min(self.dhw_storage.energy_balance[self.time_step], 0.0)),
             'net_electricity_consumption': self.net_electricity_consumption[self.time_step],
             'cooling_electricity_consumption': self.cooling_electricity_consumption[self.time_step],
@@ -1035,6 +1103,8 @@ class Building(Environment):
             'cooling_device_efficiency': self.cooling_device.get_cop(self.weather.outdoor_dry_bulb_temperature[self.time_step], heating=False),
             'heating_device_efficiency': self.heating_device.get_cop(self.weather.outdoor_dry_bulb_temperature[self.time_step], heating=True) \
                 if isinstance(self.heating_device, HeatPump) else self.heating_device.efficiency,
+            'heating_fuel_device_efficiency': self.heating_fuel_device.efficiency \
+                if isinstance(self.heating_fuel_device, GasBoiler) else 0.0,
             'dhw_device_efficiency': self.dhw_device.get_cop(self.weather.outdoor_dry_bulb_temperature[self.time_step], heating=True) \
                 if isinstance(self.dhw_device, HeatPump) else self.dhw_device.efficiency,
             'indoor_dry_bulb_temperature_cooling_set_point': self.energy_simulation.indoor_dry_bulb_temperature_cooling_set_point[self.time_step],
@@ -1065,7 +1135,7 @@ class Building(Environment):
 
     def apply_actions(self,
         cooling_or_heating_device_action: float = None,
-        cooling_device_action: float = None, heating_device_action: float = None,
+        cooling_device_action: float = None, heating_device_action: float = None, heating_fuel_device_action: float = None,
         cooling_storage_action: float = None, heating_storage_action: float = None,
         dhw_storage_action: float = None, electrical_storage_action: float = None,
         electric_vehicle_storage_actions: dict = None,
@@ -1089,6 +1159,8 @@ class Building(Environment):
             Fraction of `cooling_device` `nominal_power` to make available for space cooling.
         heating_device_action : float, default: np.nan
             Fraction of `heating_device` `nominal_power` to make available for space heating.
+        heating_fuel_device_action : float, default: np.nan
+            Fraction of `heating_fuel_device` `nominal_power` to make available for space heating.
         cooling_storage_action : float, default: 0.0
             Fraction of `cooling_storage` `capacity` to charge/discharge by.
         heating_storage_action : float, default: 0.0
@@ -1109,6 +1181,7 @@ class Building(Environment):
                     ' They will be implicitly set based on the polarity of cooling_or_heating_device.'
             cooling_device_action = abs(min(cooling_or_heating_device_action, 0.0))
             heating_device_action = abs(max(cooling_or_heating_device_action, 0.0))
+            heating_fuel_device_action = abs(min(heating_fuel_device_action, 0.0))
 
         else:
             assert not ('cooling_device' in self.active_actions and 'heating_device' in self.active_actions), \
@@ -1117,6 +1190,7 @@ class Building(Environment):
                         ' both cooling_device and heating_device in a building.'
             cooling_device_action = np.nan if 'cooling_device' not in self.active_actions else cooling_device_action
             heating_device_action = np.nan if 'heating_device' not in self.active_actions else heating_device_action
+            heating_fuel_device_action = np.nan if 'heating_fuel_device' not in self.active_actions else heating_fuel_device_action
 
         # energy storage devices
         cooling_storage_action = 0.0 if 'cooling_storage' not in self.active_actions else cooling_storage_action
@@ -1131,7 +1205,7 @@ class Building(Environment):
         # set action priority
         actions = {
             'cooling_demand': (self.update_cooling_demand, (cooling_device_action,)),
-            'heating_demand': (self.update_heating_demand, (heating_device_action,)),
+            'heating_demand': (self.update_heating_demand, (heating_device_action, heating_fuel_device_action)),
             'cooling_device': (self.update_energy_from_cooling_device, ()),
             'cooling_storage': (self.update_cooling_storage, (cooling_storage_action,)),
             'heating_device': (self.update_energy_from_heating_device, ()),
@@ -1260,11 +1334,16 @@ class Building(Environment):
         elif isinstance(self.heating_device, GasBoiler):
             # Il gas non è (ancora) limitato dalla flessibilità elettrica
             max_device_output = self.heating_device.get_max_output_power(max_fuel_power=None)
+
+        if isinstance(self.heating_fuel_device, GasBoiler):
+            max_fuel_device_output = self.heating_fuel_device.get_max_output_power(max_fuel_power=None)
         # FINE MODIFICA
 
-        self.___demand_limit_check('heating', demand, max_device_output)
+        self.___demand_limit_check('heating', demand, max_device_output+max_fuel_device_output)
         device_output = min(demand - storage_output, max_device_output)
+        fuel_device_output = min(demand - storage_output, max_fuel_device_output)
         self.__energy_from_heating_device[self.time_step] = device_output
+        self.__energy_from_heating_device[self.time_step] = fuel_device_output
         # MODIFICA BLOCCO LOGICA PER CONSUMPTION
         if isinstance(self.heating_device, (HeatPump, ElectricHeater)):
             electricity_consumption = self.heating_device.get_input_power(device_output, temperature, heating=True) \
@@ -1275,6 +1354,10 @@ class Building(Environment):
             fuel_consumption = self.heating_device.get_input_power(device_output)
             # Aggiungi un controllo di polarità del carburante se necessario, per ora assumiamo > 0
             self.heating_device.update_fuel_consumption(max(0.0, fuel_consumption))
+
+        if isinstance(self.heating_fuel_device, GasBoiler):
+            fuel_consumption = self.heating_fuel_device.get_input_power(fuel_device_output)
+            self.heating_fuel_device.update_fuel_consumption(max(0.0, fuel_consumption))
         # FINE MODIFICA
 
 
@@ -1300,9 +1383,12 @@ class Building(Environment):
                 max_output = self.heating_device.get_max_output_power(max_electric_power=max_electric_power)
             elif isinstance(self.heating_device, GasBoiler):
                 max_output = self.heating_device.get_max_output_power(max_fuel_power=None)
+
+            if isinstance(self.heating_fuel_device, GasBoiler):
+                max_fuel_output = self.heating_fuel_device.get_max_output_power(max_fuel_power=None)
             # FINE MODIFICA
 
-            energy = min(max_output, energy)
+            energy = min(max_output + max_fuel_output, energy)
 
         else:
             demand = self.heating_demand[self.time_step]
@@ -1319,6 +1405,10 @@ class Building(Environment):
         elif isinstance(self.heating_device, GasBoiler):
             fuel_consumption = self.heating_device.get_input_power(charged_energy)
             self.heating_device.update_fuel_consumption(fuel_consumption)
+
+        if isinstance(self.heating_fuel_device, GasBoiler):
+            fuel_consumption = self.heating_fuel_device.get_input_power(charged_energy)
+            self.heating_fuel_device.update_fuel_consumption(fuel_consumption)
         # FINE MODIFICA
 
     def update_energy_from_dhw_device(self):
@@ -1550,6 +1640,14 @@ class Building(Environment):
                     low_limit[key] = self.heating_device.efficiency
                     high_limit[key] = self.heating_device.efficiency
 
+            elif key in ['heating_fuel_device_efficiency']:
+                if isinstance(self.heating_fuel_device, GasBoiler):
+                    low_limit[key] = self.heating_fuel_device.efficiency
+                    high_limit[key] = self.heating_fuel_device.efficiency
+                else:
+                    low_limit[key] = 0.0
+                    high_limit[key] = 0.0
+
             elif 'charger' in key:
                 if self.electric_vehicle_chargers is not None:
                     for charger in self.electric_vehicle_chargers:
@@ -1630,7 +1728,7 @@ class Building(Environment):
                                                                                   True)
                 elif isinstance(self.heating_device, ElectricHeater):
                     electricity_consumption = self.heating_device.get_input_power(demand)
-                else:  # È GasBoiler, quindi il consumo ELETTRICO è zero
+                else:
                     electricity_consumption = np.zeros_like(demand)
                 # FINE MODIFICA
                 low_limit[key] = -max(electricity_consumption)
@@ -1663,15 +1761,17 @@ class Building(Environment):
             # AGGIUNGI QUESTI NUOVI BLOCCHI
             elif key == 'net_fuel_consumption':
                 low_limit[key] = 0.0
-                high_limit_heating = self.heating_device.nominal_power if isinstance(self.heating_device,
-                                                                                     GasBoiler) else 0.0
+                high_limit_heating = (self.heating_device.nominal_power if isinstance(self.heating_device,
+                                                                                      GasBoiler) else 0.0) + \
+                                     (self.heating_fuel_device.nominal_power if isinstance(self.heating_fuel_device,
+                                                                                          GasBoiler) else 0.0)
                 high_limit_dhw = self.dhw_device.nominal_power if isinstance(self.dhw_device, GasBoiler) else 0.0
                 high_limit[key] = high_limit_heating + high_limit_dhw
 
             elif key == 'heating_fuel_consumption':
                 if isinstance(self.heating_device, GasBoiler):
                     low_limit[key] = 0.0
-                    high_limit[key] = self.heating_device.nominal_power
+                    high_limit[key] = self.heating_device.nominal_power + self.heating_fuel_device.nominal_power
                 else:
                     low_limit[key] = 0.0
                     high_limit[key] = 0.0
@@ -1772,7 +1872,7 @@ class Building(Environment):
                 else:
                     high_limit.append(0.0)
 
-            elif key in ['cooling_device', 'heating_device']:
+            elif key in ['cooling_device', 'heating_device', 'heating_fuel_device']:
                 low_limit.append(0.0)
                 high_limit.append(1.0)
 
@@ -1796,7 +1896,7 @@ class Building(Environment):
 
                     elif key == 'heating_storage':
                         capacity = self.heating_storage.capacity
-                        power = self.heating_device.nominal_power
+                        power = self.heating_device.nominal_power + self.heating_fuel_device.nominal_power
 
                     elif key == 'dhw_storage':
                         capacity = self.dhw_storage.capacity
@@ -1901,6 +2001,23 @@ class Building(Environment):
 
         else:
             self.heating_device.nominal_power = self.heating_device.autosize(demand, **kwargs)
+
+    def autosize_heating_fuel_device(self, **kwargs):
+        """Autosize `heating_fuel_device` `nominal_power` to minimum power needed to always meet `heating_demand`.
+
+        Other Parameters
+        ----------------
+        **kwargs : dict
+            Other keyword arguments parsed to `heating_fuel_device` `autosize` function.
+        """
+
+        demand = self.energy_simulation.__getattr__(
+            'heating_demand',
+            start_time_step=self.episode_tracker.simulation_start_time_step,
+            end_time_step=self.episode_tracker.simulation_end_time_step
+        )
+
+        self.heating_fuel_device.nominal_power = self.heating_fuel_device.autosize(demand, **kwargs)
 
     def autosize_dhw_device(self, **kwargs):
         """Autosize `dhw_device` `nominal_power` to minimum power needed to always meet `dhw_demand`.
@@ -2087,6 +2204,7 @@ class Building(Environment):
 
         self.cooling_device.next_time_step()
         self.heating_device.next_time_step()
+        self.heating_fuel_device.next_time_step()
         self.dhw_device.next_time_step()
         self.non_shiftable_load_device.next_time_step()
         self.cooling_storage.next_time_step()
@@ -2113,6 +2231,7 @@ class Building(Environment):
         self.electrical_storage.reset()
         self.cooling_device.reset()
         self.heating_device.reset()
+        self.heating_fuel_device.reset()
         self.dhw_device.reset()
         self.non_shiftable_load_device.reset()
         self.pv.reset()
@@ -2129,6 +2248,7 @@ class Building(Environment):
         self.__solar_generation = self.pv.get_generation(self.energy_simulation.solar_generation) * -1
         self.__energy_from_cooling_device = self.energy_simulation.cooling_demand.copy()
         self.__energy_from_heating_device = self.energy_simulation.heating_demand.copy()
+        self.__energy_from_heating_fuel_device = self.energy_simulation.heating_demand.copy()
         self.__energy_from_dhw_device = self.energy_simulation.dhw_demand.copy()
         self.__energy_to_non_shiftable_load = self.energy_simulation.non_shiftable_load.copy()
         self.__net_electricity_consumption = np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
@@ -2205,7 +2325,9 @@ class Building(Environment):
             self.cooling_device.update_electricity_consumption(cooling_electricity_consumption)
 
             # heating electricity consumption
-            heating_demand = self.__energy_from_heating_device[self.time_step] + self.heating_storage.energy_balance[self.time_step]
+            heating_demand = (self.__energy_from_heating_device[self.time_step] +
+                              self.__energy_from_heating_fuel_device[self.time_step] +
+                              self.heating_storage.energy_balance[self.time_step])
 
             if isinstance(self.heating_device, HeatPump):
                 heating_electricity_consumption = self.heating_device.get_input_power(heating_demand, temperature, heating=True)
@@ -2213,7 +2335,8 @@ class Building(Environment):
                 heating_electricity_consumption = self.dhw_device.get_input_power(heating_demand)
 
             if isinstance(self.heating_device, GasBoiler):
-                heating_fuel_consumption = self.heating_device.get_input_power(heating_demand)
+                heating_fuel_consumption = self.heating_device.get_input_power(heating_demand) + \
+                                           self.heating_fuel_device.get_input_power(heating_demand)
 
                 self.heating_device.update_fuel_consumption(heating_fuel_consumption)
             else:
@@ -2287,6 +2410,9 @@ class Building(Environment):
 
         if isinstance(self.dhw_device, GasBoiler):
             net_fuel_consumption += self.dhw_device.fuel_consumption[self.time_step]
+
+        if isinstance(self.heating_fuel_device, GasBoiler):
+            net_fuel_consumption += self.heating_fuel_device.fuel_consumption[self.time_step]
 
         self.__net_fuel_consumption[self.time_step] = net_fuel_consumption
         # FINE AGGIUNTA
@@ -2631,7 +2757,7 @@ class LSTMDynamicsBuilding(DynamicsBuilding):
         else:
             pass
 
-    def update_heating_demand(self, action: float):
+    def update_heating_demand(self, action: float, fuel_action: float = 0.0):
         """Update space heating demand for current time step.
 
         Sets the value of :py:attr:`citylearn.building.Building.energy_simulation.heating_demand` for the current `time_step` to
@@ -2651,15 +2777,20 @@ class LSTMDynamicsBuilding(DynamicsBuilding):
         lookback. Taking this approach as a 'warm-up' because realistically, there will be no preceding observations to use in 
         lookback.
         """
-        
-        if ('heating_device' in self.active_actions or 'cooling_or_heating_device' in self.active_actions) and self.simulate_dynamics:
+
+        if ('heating_device' in self.active_actions or
+            'cooling_or_heating_device' in self.active_actions or
+            'heating_fuel_device' in self.active_actions) and self.simulate_dynamics:
             if self.energy_simulation.hvac_mode[self.time_step] in [2, 3]:
-                electric_power = action * self.heating_device.nominal_power
+                electric_power = action * self.heating_device.nominal_power + fuel_action * self.heating_fuel_device.nominal_power
                 demand = self.heating_device.get_max_output_power(
                     self.weather.outdoor_dry_bulb_temperature[self.time_step],
                     heating=True,
                     max_electric_power=electric_power
-                ) if isinstance(self.heating_device, HeatPump) else self.heating_device.get_max_output_power(max_fuel_power=electric_power)
+                ) if isinstance(self.heating_device, HeatPump) else self.heating_device.get_max_output_power(
+                                                                        max_fuel_power=action * self.heating_device.nominal_power) + \
+                                                                    self.heating_fuel_device.get_max_output_power(
+                                                                        max_fuel_power=fuel_action * self.heating_fuel_device.nominal_power)
             else:
                 demand = 0.0
 
