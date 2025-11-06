@@ -705,6 +705,12 @@ class CityLearnEnv(Environment, Env):
         return pd.DataFrame([b.energy_from_heating_device for b in self.buildings]).sum(axis = 0, min_count = 1).to_numpy()
 
     @property
+    def energy_from_heating_fuel_device(self) -> np.ndarray:
+        """Summed `Building.energy_from_heating_fuel_device` time series, in [kWh]."""
+
+        return pd.DataFrame([b.energy_from_heating_fuel_device for b in self.buildings]).sum(axis = 0, min_count = 1).to_numpy()
+
+    @property
     def energy_from_dhw_device(self) -> np.ndarray:
         """Summed `Building.energy_from_dhw_device` time series, in [kWh]."""
 
@@ -879,6 +885,7 @@ class CityLearnEnv(Environment, Env):
             'direct_solar_irradiance_predicted_2', 'direct_solar_irradiance_predicted_3',
             'carbon_intensity', 'electricity_pricing', 'electricity_pricing_predicted_1',
             'electricity_pricing_predicted_2', 'electricity_pricing_predicted_3',
+            'fuel_pricing', 'fuel_pricing_predicted_1', 'fuel_pricing_predicted_2', 'fuel_pricing_predicted_3'
         ]
 
 
@@ -1728,6 +1735,7 @@ class CityLearnEnv(Environment, Env):
         device_metadata = {
             'cooling_device': {'autosizer': building.autosize_cooling_device},
             'heating_device': {'autosizer': building.autosize_heating_device},
+            'heating_fuel_device': {'autosizer': building.autosize_heating_fuel_device},
             'dhw_device': {'autosizer': building.autosize_dhw_device},
             'dhw_storage': {'autosizer': building.autosize_dhw_storage},
             'cooling_storage': {'autosizer': building.autosize_cooling_storage},
