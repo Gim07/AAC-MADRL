@@ -52,6 +52,7 @@ def parse_args():
     p.add_argument("--central-agent", action="store_true", help="Usa un agente centrale.")
     p.add_argument("--episodes", default=12, type=int, help="Episodi di training.")
     p.add_argument("--lr", default=3e-4, type=float, help="Learning rate.")
+    p.add_argument("--batch-size", default=256, type=int, help="Batch size.")
     p.add_argument("--beta", default=0.0, type=float, help="Valore beta (tenuto nei config/W&B).")
     p.add_argument("--gamma", default=1, type=float, help="Valore gamma (tenuto nei config/W&B).")
 
@@ -139,6 +140,7 @@ def main():
         "dhw_storage": args.dhw_storage,
         "electrical_storage": args.electrical_storage,
         "heating_device": args.heating_device,
+        "heating_fuel_device": args.heating_device,  # usa lo stesso numero di classi
     }
     # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -149,6 +151,7 @@ def main():
         "central_agent": args.central_agent,
         "episodes": args.episodes,
         "lr": args.lr,
+        "batch_size": args.batch_size,
         "beta": args.beta,
         "output_root": str(output_root),
         "zip_path": str(zip_file),

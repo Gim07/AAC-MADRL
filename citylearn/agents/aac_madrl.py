@@ -364,6 +364,7 @@ class AAC_MADRL(RLC):
             "electrical_storage": 21,
             "cooling_device": 11,
             "heating_device": 11,
+            "heating_fuel_device": 11,
             "cooling_or_heating_device": 21
         })
 
@@ -393,7 +394,7 @@ class AAC_MADRL(RLC):
         self.classes = classes
         self.attend_heads = attend_heads
         self.num_classes = list(self.classes.values())
-        self.defined_actions = {key: np.linspace(0, 1, num) if key in ['cooling_device', 'heating_device'] else np.linspace(-1, 1, num) for key, num in self.classes.items()}
+        self.defined_actions = {key: np.linspace(0, 1, num) if key in ['cooling_device', 'heating_device', 'heating_fuel_device'] else np.linspace(-1, 1, num) for key, num in self.classes.items()}
         
         self.sample = sample
         self.set_networks()
@@ -887,7 +888,7 @@ class AAC_MADRL(RLC):
             keys = self.action_names[agent]
             bins_agent = [
                 (np.append(np.arange(0, 1, 1/self.classes[k]), 1)
-                if k in ('cooling_device', 'heating_device')
+                if k in ('cooling_device', 'heating_device', 'heating_fuel_device')
                 else np.append(np.arange(-1, 1, 2/self.classes[k]), 1))
                 for k in keys
             ]
@@ -905,7 +906,7 @@ class AAC_MADRL(RLC):
         bins = [
         [
             (np.append(np.arange(0, 1, 1 / self.classes[key]), 1)
-             if key in ['cooling_device', 'heating_device']
+             if key in ['cooling_device', 'heating_device', 'heating_fuel_device']
              else np.append(np.arange(-1, 1, 2 / self.classes[key]), 1))
             for key in self.action_names[agent]
         ]

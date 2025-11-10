@@ -5,9 +5,7 @@ from pathlib import Path
 import os
 import argparse
 import sys
-from citylearn.agents.sac import SAC as RLAgent
 
-from stable_baselines3 import SAC as RLAgent
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.base_class import BaseAlgorithm
 
@@ -60,7 +58,7 @@ def parse_args():
     p.add_argument("--central-agent", action="store_true", help="Usa un agente centrale.")
     p.add_argument("--episodes", default=12, type=int, help="Episodi di training.")
     p.add_argument("--lr", default=3e-4, type=float, help="Learning rate.")
-    p.add_argument("--batch_size", default=256, type=int, help="Batch size.")
+    p.add_argument("--batch-size", default=256, type=int, help="Batch size.")
     p.add_argument("--hidden-dimension", default=[256, 256], help="Hidden dimension.")
     p.add_argument("--beta", default=0.0, type=float, help="Valore beta (tenuto nei config/W&B).")
     p.add_argument("--gamma", default=1, type=float, help="Valore gamma (tenuto nei config/W&B).")

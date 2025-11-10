@@ -1268,7 +1268,7 @@ class FuelCombustionDevice(Device):
         if self.nominal_power is None:
             return None
         else:
-            return self.nominal_power - current_fuel_consumption
+            return self.nominal_power
 
 
     def get_metadata(self) -> Mapping[str, Any]:
@@ -1373,9 +1373,9 @@ class GasBoiler(FuelCombustionDevice):
         """
 
         if max_fuel_power is None:
-            return self.available_nominal_power * self.efficiency
+            return self.nominal_power * self.efficiency
         else:
-            return np.min([max_fuel_power, self.available_nominal_power], axis=0) * self.efficiency
+            return np.min([max_fuel_power, self.nominal_power], axis=0) * self.efficiency
 
     def get_input_power(self, output_power: Union[float, Iterable[float]]) -> Union[float, Iterable[float]]:
         r"""Restituisce la potenza di carburante in ingresso.
@@ -1421,7 +1421,7 @@ class GasBoiler(FuelCombustionDevice):
         `nominal_power` = max(demand/`efficiency`)*safety_factor
         """
 
-        safety_factor = safety_factor = self._get_property_value(safety_factor, 1.0)
+        safety_factor = self._get_property_value(safety_factor, 1.0)
         nominal_power = np.nanmax(np.array(demand) / self.efficiency) * safety_factor
 
         return nominal_power

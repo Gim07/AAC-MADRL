@@ -373,13 +373,23 @@ def run_model_and_save_obs(
             "electrical storage soc": b.electrical_storage.soc if hasattr(b, "electrical_storage") else None,
             "electrical capacity history": b.electrical_storage.capacity_history if hasattr(b, "electrical_storage") else None,
             "stored electrical energy": (b.electrical_storage.soc * b.electrical_storage.capacity_history) if hasattr(b, "electrical_storage") else None,
+
+            "energy from electrical storage": b.energy_from_electrical_storage,
+            "energy to electrical storage": b.energy_to_electrical_storage,
+
             "energy from cooling device": b.energy_from_cooling_device,
             "energy from dhw device": b.energy_from_dhw_storage,
             "energy from dhw device to dhw storage": b.energy_from_dhw_device_to_dhw_storage,
             "energy from dhw storage": b.energy_from_dhw_storage,
-            "energy from electrical storage": b.energy_from_electrical_storage,
+
+            "energy from heating fuel device to heating storage": b.energy_from_heating_fuel_device_to_heating_storage,
+            "energy from heating device to heating storage": b.energy_from_heating_device_to_heating_storage,
+            "energy from heating storage": b.energy_from_heating_storage,
+            "heating storage soc": b.heating_storage.soc,
+            "heating storage capacity": b.heating_storage.capacity,
+
             "energy from heating device": b.energy_from_heating_device,
-            "energy to electrical storage": b.energy_to_electrical_storage,
+            "energy from heating fuel device": b.energy_from_heating_fuel_device,
             "energy to non shiftable load": b.energy_to_non_shiftable_load,
 
             "net electricity consumption": b.net_electricity_consumption,
@@ -451,7 +461,8 @@ if __name__ == "__main__":
         aac_classes={"dhw_storage": 21,
                      "electrical_storage": 21,
                      "heating_storage":21,
-                     "heating_device": 11},
+                     "heating_device": 11,
+                     "heating_fuel_device":11},
     )
 
 

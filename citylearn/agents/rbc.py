@@ -703,6 +703,8 @@ class PITemperatureController(RBC):
             cooling_setpoint = None
             heating_setpoint = None
             hour = None
+            heating_delta = None
+            cooling_delta = None
 
             for i, obs_name in enumerate(n):
                 if obs_name == 'indoor_dry_bulb_temperature':
@@ -713,6 +715,10 @@ class PITemperatureController(RBC):
                     heating_setpoint = o[i]
                 elif obs_name == 'hour':
                     hour = o[i]
+                elif obs_name == 'indoor_dry_bulb_temperature_heating_delta':
+                    heating_delta = o[i]
+                elif obs_name == 'indoor_dry_bulb_temperature_cooling_delta':
+                    cooling_delta = o[i]
 
             # Use default setpoints if not available in observations
             if cooling_setpoint is None:
@@ -759,6 +765,16 @@ class PITemperatureController(RBC):
                     if indoor_temp is not None and heating_setpoint is not None:
                         error = heating_setpoint - indoor_temp  # Positive when too cold
                         integral_key = self._get_integral_key(building_idx, 'heating')
+                        action_value = self._calculate_pi_action(error, integral_key)
+                    else:
+                        action_value = 0.0
+
+                    actions_.append(action_value)
+
+                elif action_name == 'heating_fuel_device':
+                    if indoor_temp is not None and heating_setpoint is not None:
+                        error = heating_setpoint - indoor_temp  # Positive when too cold
+                        integral_key = self._get_integral_key(building_idx, 'heating_fuel')
                         action_value = self._calculate_pi_action(error, integral_key)
                     else:
                         action_value = 0.0
