@@ -1,0 +1,11 @@
+# Requirements for AAC-MADRL Dashboard
+
+# Core dependencies
+dash>=2.14.0
+plotly>=5.17.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Optional but recommended
+python-dateutil>=2.8.2
+

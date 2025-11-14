@@ -389,7 +389,6 @@ class BasicBatteryRBC(BasicRBC):
 
         HourRBC.action_map.fset(self, action_map)
 
-
 class TemperatureBasedRBC(RBC):
     r"""A temperature-responsive rule-based controller that adjusts cooling/heating based on temperature difference.
 
@@ -560,7 +559,6 @@ class TemperatureBasedRBC(RBC):
 
         return actions
 
-
 class PITemperatureController(RBC):
     r"""A PI (Proportional-Integral) controller for temperature regulation.
 
@@ -727,7 +725,31 @@ class PITemperatureController(RBC):
                 heating_setpoint = 20.0  # Default heating setpoint in Celsius
 
             for action_name in a:
-                if 'storage' in action_name:
+                if 'electrical_storage' in action_name:
+                    # Use storage action map if provided, otherwise use BasicRBC logic
+                    if self.storage_action_map is not None:
+                        if isinstance(self.storage_action_map, dict) and action_name in self.storage_action_map:
+                            if hour is not None:
+                                action_value = self.storage_action_map[action_name].get(hour, 0.0)
+                            else:
+                                action_value = 0.0
+                        else:
+                            action_value = 0.0
+                    else:
+                        # Default BasicRBC storage logic
+                        if hour is not None:
+                            if 9 <= hour <= 21:
+                                action_value = -0.08
+                            elif (1 <= hour <= 8) or (22 <= hour <= 24):
+                                action_value = 0.091
+                            else:
+                                action_value = 0.0
+                        else:
+                            action_value = 0.0
+
+                    actions_.append(action_value)
+
+                if 'heating_storage' in action_name:
                     # Use storage action map if provided, otherwise use BasicRBC logic
                     if self.storage_action_map is not None:
                         if isinstance(self.storage_action_map, dict) and action_name in self.storage_action_map:
@@ -827,6 +849,337 @@ class PITemperatureController(RBC):
 
         return actions
 
+class PIController(Agent):
+    r"""A hierarchical PI controller that leverages solar generation for optimal heating control.
+
+    This controller implements a sophisticated control strategy:
+    1. **Hierarchical Heating**: Uses electrical heating when solar is available or battery discharging,
+       switches to fuel heating when battery is charging (to preserve solar energy).
+    2. **Smart Storage Management**: Charges thermal storage when excess solar is available,
+       discharges during peak demand or when heating is needed without solar.
+    3. **PI Control**: Uses proportional-integral control for precise temperature regulation.
+
+    Control Logic:
+    - Solar available or battery discharging → Prioritize electrical heating device
+    - Battery charging → Use fuel heating device (preserve electrical energy)
+    - Thermal storage charging → When solar excess > heating demand
+    - Thermal storage discharging → During high demand or low solar periods
+
+    Parameters
+    ----------
+    env: CityLearnEnv
+        CityLearn environment.
+    kp: float, optional
+        Proportional gain for temperature control. Default is 0.2.
+    ki: float, optional
+        Integral gain for temperature control. Default is 0.01.
+    temp_deadband: float, optional
+        Temperature deadband in degrees. Default is 0.5.
+    integral_limit: float, optional
+        Anti-windup limit for integral term. Default is 10.0.
+    min_power: float, optional
+        Minimum device power output (0.0-1.0). Default is 0.0.
+    max_power: float, optional
+        Maximum device power output (0.0-1.0). Default is 1.0.
+    storage_charge_threshold: float, optional
+        Solar generation ratio threshold for charging storage (0.0-1.0).
+        Charges when solar > heating_demand * (1 + threshold). Default is 0.3.
+    storage_discharge_threshold: float, optional
+        State of charge threshold for allowing discharge (0.0-1.0). Default is 0.3.
+    storage_charge_rate: float, optional
+        Maximum charging rate for thermal storage (0.0-1.0). Default is 0.15.
+    storage_discharge_rate: float, optional
+        Maximum discharging rate for thermal storage (0.0-1.0). Default is 0.10.
+    battery_action_map: Mapping[int, float], optional
+        Hour-based action map for electrical battery. If None, uses BasicRBC logic.
+
+    Other Parameters
+    ----------------
+    **kwargs: Any
+        Other keyword arguments used to initialize super class.
+    """
+
+    def __init__(self, env: CityLearnEnv,
+                 kp: float = 0.2,
+                 ki: float = 0.01,
+                 temp_deadband: float = 1,
+                 integral_limit: float = 10.0,
+                 min_power: float = 0.0,
+                 max_power: float = 1.0,
+                 storage_charge_threshold: float = 0.1,
+                 storage_discharge_threshold: float = 0.3,
+                 storage_charge_rate: float = 0.15,
+                 storage_discharge_rate: float = 0.10,
+                 battery_action_map: Mapping[int, float] = None,
+                 **kwargs: Any):
+        super().__init__(env, **kwargs)
+        self.kp = kp
+        self.ki = ki
+        self.temp_deadband = temp_deadband
+        self.integral_limit = integral_limit
+        self.min_power = min_power
+        self.max_power = max_power
+        self.storage_charge_threshold = storage_charge_threshold
+        self.storage_discharge_threshold = storage_discharge_threshold
+        self.storage_charge_rate = storage_charge_rate
+        self.storage_discharge_rate = storage_discharge_rate
+        self.battery_action_map = battery_action_map
+
+        # Controller state
+        self.integral_errors = {}
+        # Stores the state for the thermal storage hysteresis
+        self._thermal_storage_state_map = {}
+
+    def reset(self):
+        """Reset the controller state."""
+        super().reset()
+        self.integral_errors = {}
+        self._thermal_storage_state_map = {}
+
+    def _get_integral_key(self, building_idx: int, device_type: str) -> str:
+        """Generate unique key for integral error storage."""
+        return f"{building_idx}_{device_type}"
+
+    def _calculate_pi_action(self, error: float, integral_key: str) -> float:
+        """Calculate PI control action.
+
+        Parameters
+        ----------
+        error: float
+            Current temperature error (setpoint - actual for heating, actual - setpoint for cooling)
+        integral_key: str
+            Unique key for this device's integral error accumulator
+
+        Returns
+        -------
+        action: float
+            Control action value (0.0-1.0)
+        """
+        if abs(error) <= self.temp_deadband:
+            # Within deadband - reset integral and return zero
+            self.integral_errors[integral_key] = 0.0
+            return 0.0
+
+        # Initialize integral error if not exists
+        if integral_key not in self.integral_errors:
+            self.integral_errors[integral_key] = 0.0
+        if error > 0.0:
+            # Proportional term
+            p_term = self.kp * error
+
+            # Update integral error with anti-windup
+            self.integral_errors[integral_key] += error
+            self.integral_errors[integral_key] = max(min(self.integral_errors[integral_key],
+                                                         self.integral_limit),
+                                                     -self.integral_limit)
+
+            # Integral term
+            i_term = self.ki * self.integral_errors[integral_key]
+
+            # Combined PI output
+            pi_output = p_term + i_term
+
+            # Scale to power range and clamp
+            if pi_output > 0:
+                action_value = self.min_power + pi_output * (self.max_power - self.min_power)
+                action_value = max(min(action_value, self.max_power), self.min_power)
+            else:
+                action_value = 0.0
+        else:
+            action_value = 0.0
+            self.integral_errors[integral_key] += error
+
+        return action_value
+
+    def _determine_heating_mode(self, solar_gen: float, electrical_storage_action: float) -> str:
+        """Determine which heating device to use based on solar/battery state.
+
+        Returns:
+        --------
+        mode: str
+            'electrical' if solar available or battery discharging,
+            'fuel' if battery charging (preserve electrical energy)
+        """
+        # Battery is discharging (negative action) or solar is available
+        # *** FIX: Check if solar_gen is greater than a small POSITIVE value ***
+        if electrical_storage_action < 0 or solar_gen < -0.05:
+            return 'electrical'
+        else:
+            return 'fuel'
+
+    def _calculate_storage_action(self, storage_soc: float, heating_error: float) -> float:
+        """
+        Manages thermal storage based on solar and heating error.
+        - Charges when: Excess solar is available and storage is not full.
+        - Discharges when: Heating is required (error > 0) and storage has charge.
+        """
+
+        # --- 1. Define Thresholds & Estimates ---
+        # Estimate heating demand (for solar charging logic)
+        # This is a simple linear mapping; a 5-degree error is 1.0 demand
+
+        # --- 2. Charging Logic ---
+        # Charge only if the heating demand is 0 and the storage_soc is below 0.2
+        charge_condition = (
+            heating_error < 0.01  # No heating demand
+            and storage_soc < (1.0 - self.storage_charge_threshold)  # Not full
+        )
+
+        if charge_condition:
+            # Charge proportional to excess solar, capped by max rate
+            return float(1.0)
+
+        # --- 3. Discharging Logic (Error-Proportional) ---
+        discharge_condition = (
+                heating_error > self.temp_deadband  # Need heat (outside deadband)
+                and storage_soc > self.storage_discharge_threshold  # Have charge
+        )
+
+        if discharge_condition:
+            # Discharge proportional to the heating error
+            # Use the controller's P-gain as the gain for storage discharge
+            discharge_magnitude = self.kp * (heating_error - self.temp_deadband)
+
+            # Clamp by max physical discharge rate
+            discharge_magnitude = min(discharge_magnitude, self.storage_discharge_rate)
+
+            # Clamp by available energy (don't discharge below threshold)
+            # This makes the discharge taper off as SOC gets low
+            if self.storage_discharge_threshold < 0.99:
+                available_soc_factor = (storage_soc - self.storage_discharge_threshold) / (
+                            1.0 - self.storage_discharge_threshold)
+                discharge_magnitude = min(discharge_magnitude, self.storage_discharge_rate * available_soc_factor)
+            else:
+                # Avoid division by zero if threshold is 1.0
+                discharge_magnitude = 0.0
+
+            return -max(0, discharge_magnitude)  # Return as negative action
+
+        # --- 4. Idle (Hold) ---
+        return 0.0
+
+    def predict(self, observations: List[List[float]], deterministic: bool = None) -> List[List[float]]:
+        """Provide actions using solar-aware hierarchical PI control."""
+        actions = []
+
+        for building_idx, (a, n, o) in enumerate(
+                zip(self.action_names, self.observation_names, observations)
+        ):
+            actions_ = []
+
+            # --- 1. Extract observations ---
+            indoor_temp = None
+            heating_setpoint = None
+            cooling_setpoint = None
+            hour = None
+            solar_gen = 0.0
+            heating_storage_soc = 0.5
+            electrical_storage_soc = 0.5
+
+            for i, obs_name in enumerate(n):
+                if obs_name == 'indoor_dry_bulb_temperature':
+                    indoor_temp = o[i]
+                elif obs_name == 'indoor_dry_bulb_temperature_heating_set_point':
+                    heating_setpoint = o[i]
+                elif obs_name == 'indoor_dry_bulb_temperature_cooling_set_point':
+                    cooling_setpoint = o[i]
+                elif obs_name == 'hour':
+                    hour = int(o[i])
+                elif obs_name == 'solar_generation':
+                    solar_gen = abs(o[i])
+                elif obs_name == 'heating_storage_soc' or obs_name == 'dhw_storage_soc':
+                    heating_storage_soc = o[i]
+                elif obs_name == 'electrical_storage_soc':
+                    electrical_storage_soc = o[i]
+
+            # Default setpoints
+            if heating_setpoint is None:
+                heating_setpoint = 20.0
+            if cooling_setpoint is None:
+                cooling_setpoint = 24.0
+            if hour is None:
+                hour = 12
+
+            # --- 2. Calculate Storage and Mode ---
+            electrical_storage_action = 0.0
+            if self.battery_action_map is not None and hour in self.battery_action_map:
+                electrical_storage_action = self.battery_action_map[hour]
+            else:
+                # Default BasicRBC battery logic
+                if 9 <= hour <= 21:
+                    electrical_storage_action = -0.08
+                elif (1 <= hour <= 8) or (22 <= hour <= 24):
+                    electrical_storage_action = 0.091
+
+            heating_mode = self._determine_heating_mode(solar_gen, electrical_storage_action)
+
+            # --- 3. Calculate ONE PI Action for Heating and Cooling ---
+            heating_action_value = 0.0
+            if indoor_temp is not None and heating_setpoint is not None:
+                heating_error = heating_setpoint - indoor_temp
+                integral_key = self._get_integral_key(building_idx, 'heating')  # Unified key
+                heating_action_value = self._calculate_pi_action(heating_error, integral_key)
+                if heating_error < 0.0 and heating_action_value !=0:
+                    print('Warning: Heating action calculated when no heating needed!')
+            cooling_action_value = 0.0
+            if indoor_temp is not None and cooling_setpoint is not None:
+                cooling_error = indoor_temp - cooling_setpoint
+                # integral_key = self._get_integral_key(building_idx, 'cooling')  # Unified key
+                # cooling_action_value = self._calculate_pi_action(cooling_error, integral_key)
+
+            # --- 4. Process Actions *USING* the Calculated Values ---
+            for action_name in a:
+                if action_name == 'electrical_storage':
+                    actions_.append(electrical_storage_action)
+
+                elif action_name == 'heating_storage' or action_name == 'dhw_storage':
+                    # Pass building_idx for stateful hysteresis
+                    storage_action = self._calculate_storage_action(heating_storage_soc, building_idx)
+                    actions_.append(storage_action)
+
+                elif action_name == 'cooling_storage':
+                    # Simple cooling storage logic (can be enhanced)
+                    if 6 <= hour <= 14:
+                        actions_.append(0.08)
+                    else:
+                        actions_.append(-0.05)
+
+                # ==========================================================
+                # THE FIX IS HERE:
+                # Use the 'heating_action_value' calculated above.
+                # Do NOT recalculate or reset any integrals.
+                # ==========================================================
+                elif action_name == 'heating_device':
+                    # Electrical heating - use only when in electrical mode
+                    if heating_mode == 'electrical':
+                        actions_.append(heating_action_value)
+                    else:
+                        actions_.append(0.0)  # Off, but integral is NOT reset
+
+                elif action_name == 'heating_fuel_device':
+                    # Fuel heating - use only when in fuel mode
+                    if heating_mode == 'fuel':
+                        actions_.append(heating_action_value)
+                    else:
+                        actions_.append(0.0)  # Off, but integral is NOT reset
+
+                elif action_name == 'cooling_device':
+                    # Use the 'cooling_action_value' calculated above
+                    actions_.append(cooling_action_value)
+                # ==========================================================
+                # END OF FIX
+                # ==========================================================
+
+                else:
+                    # Unknown action type
+                    actions_.append(0.0)
+
+            actions.append(actions_)
+
+        self.actions = actions
+        self.next_time_step()
+
+        return actions
 
 class PIDTemperatureController(RBC):
     r"""A PID (Proportional-Integral-Derivative) controller for temperature regulation.

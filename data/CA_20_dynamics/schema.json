@@ -126,7 +126,7 @@
       "shared_in_central_agent": true
     },
     "indoor_dry_bulb_temperature": {
-      "active": false,
+      "active": true,
       "shared_in_central_agent": false
     },
     "average_unmet_cooling_setpoint_difference": {
@@ -166,7 +166,7 @@
       "shared_in_central_agent": false
     },
     "indoor_dry_bulb_temperature_heating_set_point": {
-      "active": false,
+      "active": true,
       "shared_in_central_agent": false
     },
     "comfort_band": {
