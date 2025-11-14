@@ -1158,23 +1158,9 @@ def render_temperature_tab(dataset, selected_buildings, selected_configs, season
                    style={'color': '#95a5a6'})
         ], style={'textAlign': 'center', 'padding': '80px'})
 
-    # Update axes and add background colors to distinguish buildings
+    # Update axes
     for i in range(1, n_buildings + 1):
         fig.update_yaxes(title_text="Temperature (°C)", row=i, col=1)
-
-        # Add alternating background colors for each building
-        # Even buildings get a light blue tint, odd buildings stay white
-        if i % 2 == 0:
-            fig.update_yaxes(
-                showgrid=True,
-                gridcolor='rgba(220, 230, 242, 0.5)',
-                row=i, col=1
-            )
-            fig.update_xaxes(
-                showgrid=True,
-                gridcolor='rgba(220, 230, 242, 0.5)',
-                row=i, col=1
-            )
 
     fig.update_xaxes(title_text="Time", row=n_buildings, col=1)
 
@@ -1201,22 +1187,30 @@ def render_temperature_tab(dataset, selected_buildings, selected_configs, season
     )
 
     # Add colored background rectangles for better building separation
+    # Using proper subplot domain calculation
     if n_buildings > 1:
+        # Get actual subplot positions from figure layout
         for i in range(1, n_buildings + 1):
             if i % 2 == 0:
-                # Calculate subplot domain positions (approximation)
-                # Each subplot takes 1/n_buildings of the vertical space
-                y_start = (n_buildings - i) / n_buildings
-                y_end = (n_buildings - i + 1) / n_buildings
+                # Access the subplot's yaxis domain
+                yaxis_name = f'yaxis{i}' if i > 1 else 'yaxis'
+
+                # Calculate approximate domain based on equal spacing
+                # Accounting for vertical_spacing
+                subplot_height = (1.0 - vertical_spacing * (n_buildings - 1)) / n_buildings
+                spacing_total = vertical_spacing * (i - 1)
+
+                # Position from bottom (Plotly uses bottom-to-top)
+                y_bottom = (n_buildings - i) * (subplot_height + vertical_spacing)
+                y_top = y_bottom + subplot_height
 
                 fig.add_shape(
                     type="rect",
                     xref="paper", yref="paper",
-                    x0=0, y0=y_start,
-                    x1=1, y1=y_end,
-                    fillcolor="rgba(173, 216, 230, 0.08)",
+                    x0=0, y0=y_bottom,
+                    x1=1, y1=y_top,
                     layer="below",
-                    line_width=0,
+                    line=dict(color="rgba(100, 150, 200, 0.3)", width=0),  # Add subtle border
                 )
 
     return dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False})
@@ -1225,7 +1219,13 @@ def render_temperature_tab(dataset, selected_buildings, selected_configs, season
 def render_demands_tab(dataset, selected_buildings, selected_configs, season,
                        start_date, end_date, configs_data):
     """Render energy demands visualization for multiple buildings."""
-    n_buildings = len(selected_buildings)
+    # OPTIMIZATION: Limit to first 5 buildings for better performance
+    MAX_BUILDINGS_DEMANDS = 5
+    original_count = len(selected_buildings)
+    selected_buildings_limited = list(selected_buildings)[:MAX_BUILDINGS_DEMANDS]
+    show_warning = original_count > MAX_BUILDINGS_DEMANDS
+
+    n_buildings = len(selected_buildings_limited)
     total_rows = n_buildings * 3  # 3 demand types per building
 
     # Calculate dynamic spacing based on number of rows
@@ -1237,14 +1237,14 @@ def render_demands_tab(dataset, selected_buildings, selected_configs, season,
     # ***FIX 2: Update rows and titles for 3 demands***
     fig = make_subplots(
         rows=total_rows, cols=1,
-        subplot_titles=[item for bid in selected_buildings for item in
+        subplot_titles=[item for bid in selected_buildings_limited for item in
                         (f"Building {bid} - Cooling", f"Building {bid} - Heating", f"Building {bid} - DHW")],
         shared_xaxes=True,
         vertical_spacing=vertical_spacing
     )
 
     # Load data for each building
-    for bldg_idx, building_id in enumerate(selected_buildings):
+    for bldg_idx, building_id in enumerate(selected_buildings_limited):
         # ***FIX 2: Update row indices***
         row_cooling = bldg_idx * 3 + 1
         row_heating = bldg_idx * 3 + 2
@@ -1335,72 +1335,145 @@ def render_demands_tab(dataset, selected_buildings, selected_configs, season,
         )
     )
 
-    return dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False})
+    # Add colored background rectangles to visually group the 3 demand types per building
+    if n_buildings > 1:
+        total_rows = n_buildings * 3
+
+        # Calculate subplot dimensions
+        subplot_height = (1.0 - vertical_spacing * (total_rows - 1)) / total_rows
+
+        for bldg_idx in range(n_buildings):
+            if bldg_idx % 2 != 0:
+                # Calculate the domain for all 3 rows of this building
+                rows_start = bldg_idx * 3  # 0, 3, 6, 9, ...
+                rows_end = rows_start + 3   # 3, 6, 9, 12, ...
+
+                # Position from bottom (Plotly uses bottom-to-top, row 1 is at top)
+                y_bottom = (total_rows - rows_end) * (subplot_height + vertical_spacing)
+                y_top = (total_rows - rows_start) * (subplot_height + vertical_spacing)
+
+                fig.add_shape(
+                    type="rect",
+                    xref="paper", yref="paper",
+                    x0=0, y0=y_bottom,
+                    x1=1, y1=y_top,
+                    fillcolor="rgba(135, 206, 235, 0.1)",  # Sky blue with 20% opacity
+                    layer="below",
+                    line=dict(color="rgba(100, 150, 200, 0.3)", width=1),  # Add subtle border
+                )
+
+    # Create the graph component
+    graph_component = dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False})
+
+    # Add warning if buildings were limited
+    if show_warning:
+        return html.Div([
+            html.Div([
+                html.Span("⚠️ ", style={'fontSize': '20px', 'marginRight': '10px'}),
+                html.Span(f"Performance Optimization: Showing first {MAX_BUILDINGS_DEMANDS} of {original_count} selected buildings. ",
+                         style={'fontWeight': 'bold', 'color': '#e67e22'}),
+                html.Span(f"Reduce selection to see specific buildings.",
+                         style={'color': '#7f8c8d'})
+            ], style={
+                'backgroundColor': '#fff3cd',
+                'border': '1px solid #ffc107',
+                'borderRadius': '5px',
+                'padding': '12px 20px',
+                'marginBottom': '15px',
+                'display': 'flex',
+                'alignItems': 'center'
+            }),
+            graph_component
+        ])
+
+    return graph_component
 
 
 def render_actions_tab(dataset, selected_buildings, selected_configs, season,
                        start_date, end_date, configs_data):
-    """Render actions visualization with smart KPIs."""
-    # Use first selected building for actions
-    building_id = selected_buildings[0] if selected_buildings else 0
+    """Render actions visualization for multiple buildings."""
+    # OPTIMIZATION: Limit to first 5 buildings for better performance
+    MAX_BUILDINGS_ACTIONS = 5
+    original_count = len(selected_buildings)
+    selected_buildings_limited = list(selected_buildings)[:MAX_BUILDINGS_ACTIONS]
+    show_warning = original_count > MAX_BUILDINGS_ACTIONS
 
-# Update subplot titles based on new ACTION_COLUMNS
+    n_buildings = len(selected_buildings_limited)
+    n_action_cols = len(ACTION_COLUMNS)
+    total_rows = n_buildings * n_action_cols  # Each building gets all action columns
+
+    # Calculate dynamic spacing based on number of rows
+    max_allowed_spacing = 1.0 / (total_rows - 1) if total_rows > 1 else 0.08
+    vertical_spacing = max(0.01, min(0.08, max_allowed_spacing * 0.8))
+
+    # Create subplot titles for each building and action
+    subplot_titles = [f"Building {bid} - {col.replace('_', ' ').title()}"
+                      for bid in selected_buildings_limited
+                      for col in ACTION_COLUMNS]
+
     fig = make_subplots(
-        rows=len(ACTION_COLUMNS), cols=1,
-        subplot_titles=[col.replace('_', ' ').title() for col in ACTION_COLUMNS],
+        rows=total_rows, cols=1,
+        subplot_titles=subplot_titles,
         shared_xaxes=True,
-        vertical_spacing=0.08
+        vertical_spacing=vertical_spacing
     )
 
-    # ***FIX 3: ACTION_COLUMNS is now defined globally, no need to redefine***
-    # action_cols = ["heating_storage", "electrical_storage", "heating_device"]
+    # Load data for each building
+    for bldg_idx, building_id in enumerate(selected_buildings_limited):
+        # Calculate row indices for this building's action columns
+        base_row = bldg_idx * n_action_cols
 
-    # Load data for each selected configuration
-    for i, config_key in enumerate(selected_configs):
-        config = configs_data[config_key]
+        # Load data for each selected configuration
+        for i, config_key in enumerate(selected_configs):
+            config = configs_data[config_key]
 
-        # Create full legend name
-        algo_name_formatted = config['algorithm'].replace('_', ' ').title()
-        config_display_name = config['display_name']
-        legend_name = f"{algo_name_formatted}: {config_display_name}"
+            # Create full legend name
+            algo_name_formatted = config['algorithm'].replace('_', ' ').title()
+            config_display_name = config['display_name']
+            legend_name = f"{algo_name_formatted}: {config_display_name}"
 
-        df = load_action_data(dataset, config, building_id, season)
+            df = load_action_data(dataset, config, building_id, season)
 
-        if df is None or df.empty:
-            continue
+            if df is None or df.empty:
+                continue
 
-        # Filter by date range
-        df_filtered = df.loc[start_date:end_date]
+            # Filter by date range
+            df_filtered = df.loc[start_date:end_date]
 
-        if df_filtered.empty:
-            continue
+            if df_filtered.empty:
+                continue
 
-        color = COLORS[i % len(COLORS)]
+            color = COLORS[i % len(COLORS)]
 
-        # Plot each action dimension
-        # ***FIX 3: Iterates over global ACTION_COLUMNS***
-        for row_idx, col_name in enumerate(ACTION_COLUMNS, start=1):
-            if col_name in df_filtered.columns:
-                fig.add_trace(go.Scatter(
-                    x=df_filtered.index,
-                    y=df_filtered[col_name],
-                    name=legend_name,
-                    line=dict(color=color, width=2.5),
-                    mode='lines',
-                    showlegend=(row_idx == 1)  # Only show legend once
-                ), row=row_idx, col=1)
+            # Plot each action dimension for this building
+            for action_idx, col_name in enumerate(ACTION_COLUMNS):
+                row_num = base_row + action_idx + 1  # +1 because rows are 1-indexed
 
-    fig.update_xaxes(title_text="Time", row=len(ACTION_COLUMNS), col=1)
-    for i in range(1, len(ACTION_COLUMNS)+1):
+                if col_name in df_filtered.columns:
+                    fig.add_trace(go.Scatter(
+                        x=df_filtered.index,
+                        y=df_filtered[col_name],
+                        name=legend_name + (f" - B{building_id}" if n_buildings > 1 else ""),
+                        line=dict(color=color, width=2.5),
+                        mode='lines',
+                        showlegend=(bldg_idx == 0 and action_idx == 0)  # Only show legend once
+                    ), row=row_num, col=1)
+
+    # Update axes
+    for i in range(1, total_rows + 1):
         fig.update_yaxes(title_text="Action Value", row=i, col=1)
+    fig.update_xaxes(title_text="Time", row=total_rows, col=1)
+
+    # Calculate height: minimum 200px per subplot to maintain readability
+    plot_height = max(200 * total_rows, 800)
 
     fig.update_layout(
         title=dict(
-            text=f"Controller Actions - Building {building_id}",
+            text=f"Controller Actions - {n_buildings} Building(s), {len(selected_configs)} Configuration(s)",
             font=dict(size=18, color='#2c3e50')
         ),
         hovermode='x unified',
-        height=900,
+        height=plot_height,
         template='plotly_white',
         legend=dict(
             orientation="h",
@@ -1412,22 +1485,48 @@ def render_actions_tab(dataset, selected_buildings, selected_configs, season,
         )
     )
 
-    # Calculate action KPIs
+    # Add colored background rectangles to visually group actions per building
+    if n_buildings > 1:
+        subplot_height = (1.0 - vertical_spacing * (total_rows - 1)) / total_rows
+
+        for bldg_idx in range(n_buildings):
+            if bldg_idx % 2 != 0:
+                # Calculate the domain for all action rows of this building
+                rows_start = bldg_idx * n_action_cols
+                rows_end = rows_start + n_action_cols
+
+                # Position from bottom (Plotly uses bottom-to-top)
+                y_bottom = (total_rows - rows_end) * (subplot_height + vertical_spacing)
+                y_top = (total_rows - rows_start) * (subplot_height + vertical_spacing)
+
+                fig.add_shape(
+                    type="rect",
+                    xref="paper", yref="paper",
+                    x0=0, y0=y_bottom,
+                    x1=1, y1=y_top,
+                    fillcolor="rgba(135, 206, 235, 0.2)",  # Sky blue with 20% opacity
+                    layer="below",
+                    line=dict(color="rgba(100, 150, 200, 0.3)", width=1),
+                )
+
+    # Calculate action KPIs for all buildings (limited list)
     kpi_data = []
-    for config_key in selected_configs:
-        config = configs_data[config_key]
-        df = load_action_data(dataset, config, building_id, season)
+    for building_id in selected_buildings_limited:
+        for config_key in selected_configs:
+            config = configs_data[config_key]
+            df = load_action_data(dataset, config, building_id, season)
 
-        if df is not None and not df.empty:
-            df_filtered = df.loc[start_date:end_date]
-            kpis = calculate_action_kpis(df_filtered)
+            if df is not None and not df.empty:
+                df_filtered = df.loc[start_date:end_date]
+                kpis = calculate_action_kpis(df_filtered)
 
-            # Create full legend name for table
-            algo_name_formatted = config['algorithm'].replace('_', ' ').title()
-            config_display_name = config['display_name']
-            kpis['Configuration'] = f"{algo_name_formatted}: {config_display_name}"
+                # Create full legend name for table
+                algo_name_formatted = config['algorithm'].replace('_', ' ').title()
+                config_display_name = config['display_name']
+                kpis['Building'] = f"Building {building_id}"
+                kpis['Configuration'] = f"{algo_name_formatted}: {config_display_name}"
 
-            kpi_data.append(kpis)
+                kpi_data.append(kpis)
 
     # Create KPI summary table
     if kpi_data:
@@ -1444,13 +1543,19 @@ def render_actions_tab(dataset, selected_buildings, selected_configs, season,
             html.Div([
                 html.Table([
                     html.Thead(
-                        html.Tr([html.Th('Configuration', style={
+                        html.Tr([html.Th('Building', style={
                             'backgroundColor': '#667eea',
                             'color': 'white',
                             'padding': '12px',
                             'textAlign': 'left',
                             'borderRadius': '5px 0 0 0'
                         })] +
+                                [html.Th('Configuration', style={
+                                    'backgroundColor': '#667eea',
+                                    'color': 'white',
+                                    'padding': '12px',
+                                    'textAlign': 'left'
+                                })] +
                                 [html.Th(m.replace('_', ' ').title(), style={
                                     'backgroundColor': '#667eea',
                                     'color': 'white',
@@ -1460,7 +1565,13 @@ def render_actions_tab(dataset, selected_buildings, selected_configs, season,
                     ),
                     html.Tbody([
                         html.Tr([
-                                    html.Td(row['Configuration'], style={
+                                    html.Td(row['Building'], style={
+                                        'padding': '12px',
+                                        'borderBottom': '1px solid #e0e0e0',
+                                        'fontWeight': '600',
+                                        'color': '#2c3e50'
+                                    })] +
+                                    [html.Td(row['Configuration'], style={
                                         'padding': '12px',
                                         'borderBottom': '1px solid #e0e0e0',
                                         'fontWeight': '600',
@@ -1487,12 +1598,58 @@ def render_actions_tab(dataset, selected_buildings, selected_configs, season,
             ], style={'overflowX': 'auto'})
         ])
 
-        return html.Div([
+        graph_and_table = html.Div([
             dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False}),
             table
         ])
 
-    return dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False})
+        # Add warning if buildings were limited
+        if show_warning:
+            return html.Div([
+                html.Div([
+                    html.Span("⚠️ ", style={'fontSize': '20px', 'marginRight': '10px'}),
+                    html.Span(f"Performance Optimization: Showing first {MAX_BUILDINGS_ACTIONS} of {original_count} selected buildings. ",
+                             style={'fontWeight': 'bold', 'color': '#e67e22'}),
+                    html.Span(f"Reduce selection to see specific buildings.",
+                             style={'color': '#7f8c8d'})
+                ], style={
+                    'backgroundColor': '#fff3cd',
+                    'border': '1px solid #ffc107',
+                    'borderRadius': '5px',
+                    'padding': '12px 20px',
+                    'marginBottom': '15px',
+                    'display': 'flex',
+                    'alignItems': 'center'
+                }),
+                graph_and_table
+            ])
+
+        return graph_and_table
+
+    # No table case - just graph
+    graph_component = dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False})
+
+    if show_warning:
+        return html.Div([
+            html.Div([
+                html.Span("⚠️ ", style={'fontSize': '20px', 'marginRight': '10px'}),
+                html.Span(f"Performance Optimization: Showing first {MAX_BUILDINGS_ACTIONS} of {original_count} selected buildings. ",
+                         style={'fontWeight': 'bold', 'color': '#e67e22'}),
+                html.Span(f"Reduce selection to see specific buildings.",
+                         style={'color': '#7f8c8d'})
+            ], style={
+                'backgroundColor': '#fff3cd',
+                'border': '1px solid #ffc107',
+                'borderRadius': '5px',
+                'padding': '12px 20px',
+                'marginBottom': '15px',
+                'display': 'flex',
+                'alignItems': 'center'
+            }),
+            graph_component
+        ])
+
+    return graph_component
 
 
 def render_kpis_tab(dataset, selected_buildings, selected_configs, season,
@@ -1811,7 +1968,77 @@ def render_kpis_tab(dataset, selected_buildings, selected_configs, season,
             })
         )
 
-    # Create detailed KPI table with improved styling
+    # Create detailed KPI table with improved styling and best/worst highlighting
+    # Calculate min/max for each numeric column to highlight best/worst
+    column_stats = {}
+    for col in kpi_df.columns:
+        if col != 'Configuration':
+            numeric_vals = []
+            for val in kpi_df[col]:
+                if isinstance(val, (int, float)):
+                    numeric_vals.append(val)
+            if numeric_vals:
+                column_stats[col] = {
+                    'min': min(numeric_vals),
+                    'max': max(numeric_vals)
+                }
+
+    # Determine which KPIs are "lower is better" vs "higher is better"
+    # Lower is better: violations, cost, emissions, ramping, import, variance, peak, fuel, etc.
+    # Higher is better: generation, efficiency, etc.
+    lower_is_better_keywords = [
+        'violation', 'cost', 'emission', 'ramping', 'switch', 'penalty',
+        'import', 'variance', 'peak', 'fuel'
+    ]
+
+    def get_cell_style(col, val, base_style):
+        """Get cell style with highlighting for best/worst values"""
+        if col == 'Configuration' or not isinstance(val, (int, float)):
+            return base_style
+
+        if col not in column_stats:
+            return base_style
+
+        stats = column_stats[col]
+        if stats['min'] == stats['max']:  # All values are the same
+            return base_style
+
+        # Determine if lower or higher is better
+        lower_is_better = any(keyword in col.lower() for keyword in lower_is_better_keywords)
+
+        style = base_style.copy()
+
+        if lower_is_better:
+            # Lower is better: min is best (green), max is worst (red)
+            if val == stats['min']:
+                style.update({
+                    'backgroundColor': '#d4edda',  # Light green
+                    'color': '#155724',  # Dark green
+                    'fontWeight': 'bold'
+                })
+            elif val == stats['max']:
+                style.update({
+                    'backgroundColor': '#f8d7da',  # Light red
+                    'color': '#721c24',  # Dark red
+                    'fontWeight': 'bold'
+                })
+        else:
+            # Higher is better: max is best (green), min is worst (red)
+            if val == stats['max']:
+                style.update({
+                    'backgroundColor': '#d4edda',  # Light green
+                    'color': '#155724',  # Dark green
+                    'fontWeight': 'bold'
+                })
+            elif val == stats['min']:
+                style.update({
+                    'backgroundColor': '#f8d7da',  # Light red
+                    'color': '#721c24',  # Dark red
+                    'fontWeight': 'bold'
+                })
+
+        return style
+
     table = html.Div([
         html.H3([
             html.Span("📋", style={'marginRight': '10px'}),
@@ -1824,6 +2051,12 @@ def render_kpis_tab(dataset, selected_buildings, selected_configs, season,
             'paddingBottom': '10px'
         }),
         html.Div([
+            html.Div([
+                html.Span("🟢 ", style={'color': '#28a745', 'fontSize': '14px'}),
+                html.Span("Best value", style={'marginRight': '20px', 'fontSize': '12px', 'color': '#155724'}),
+                html.Span("🔴 ", style={'color': '#dc3545', 'fontSize': '14px'}),
+                html.Span("Worst value", style={'fontSize': '12px', 'color': '#721c24'}),
+            ], style={'marginBottom': '10px', 'fontSize': '12px', 'color': '#7f8c8d'}),
             html.Table([
                 html.Thead(
                     html.Tr(
@@ -1844,7 +2077,7 @@ def render_kpis_tab(dataset, selected_buildings, selected_configs, season,
                     html.Tr([
                         html.Td(
                             f"{val:.4f}" if isinstance(val, (int, float)) and col != 'Configuration' else val,
-                            style={
+                            style=get_cell_style(col, val, {
                                 'padding': '12px 10px',
                                 'borderBottom': '1px solid #e0e0e0',
                                 'textAlign': 'left' if col == 'Configuration' else 'center',
@@ -1852,7 +2085,7 @@ def render_kpis_tab(dataset, selected_buildings, selected_configs, season,
                                 'fontSize': '12px',
                                 'fontFamily': 'monospace' if col != 'Configuration' else 'inherit',
                                 'color': '#2c3e50' if col == 'Configuration' else '#34495e'
-                            }
+                            })
                         )
                         for col, val in zip(kpi_df.columns, row)
                     ], style={
@@ -2744,10 +2977,14 @@ def render_storage_tab(dataset, selected_buildings, selected_configs, season, st
             html.H4("Select at least one building", style={'color': '#e74c3c'}),
         ], style={'textAlign': 'center', 'padding': '80px'})
 
-    # Use the first selected building
+    # OPTIMIZATION: Show all configurations but only for the first building
     building_id = selected_buildings[0]
+    total_buildings = len(selected_buildings)
+    show_info = total_buildings > 1
 
     graphs = []
+
+    # Process all configurations for the first building only
     for config_key in selected_configs:
         config = configs_data[config_key]
 
@@ -2841,7 +3078,7 @@ def render_storage_tab(dataset, selected_buildings, selected_configs, season, st
         'marginTop': 30
     })
 
-    return html.Div([
+    storage_content = html.Div([
         html.Div([
             html.H3([
                 html.Span("🔋", style={'marginRight': '10px'}),
@@ -2856,6 +3093,29 @@ def render_storage_tab(dataset, selected_buildings, selected_configs, season, st
         html.Div(graphs),
         guide
     ])
+
+    # Add info banner if multiple buildings were selected
+    if show_info:
+        return html.Div([
+            html.Div([
+                html.Span("ℹ️ ", style={'fontSize': '20px', 'marginRight': '10px'}),
+                html.Span(f"Configuration Comparison: Showing all {len(selected_configs)} configuration(s) for Building {building_id}. ",
+                         style={'fontWeight': 'bold', 'color': '#3498db'}),
+                html.Span(f"({total_buildings} buildings selected)",
+                         style={'color': '#7f8c8d'})
+            ], style={
+                'backgroundColor': '#d1ecf1',
+                'border': '1px solid #3498db',
+                'borderRadius': '5px',
+                'padding': '12px 20px',
+                'marginBottom': '15px',
+                'display': 'flex',
+                'alignItems': 'center'
+            }),
+            storage_content
+        ])
+
+    return storage_content
 # ============================================================================
 # DISTRICT LEVEL VISUALIZATION
 # ============================================================================
