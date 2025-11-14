@@ -35,14 +35,91 @@ DATA_DIR = BASE_DIR / "outputs" / "data"
 
 # Expected column names with alternatives
 COLUMN_MAPPINGS = {
-    "tin": ["indoor_temperature", "T_in", "temperature"],
+    # Temperature and comfort
+    "tin": ["indoor_temperature", "T_in", "temperature", "indoor_dry_bulb_temperature"],
     "tout": ["outdoor_dry_bulb_temperature", "outdoor_temperature", "T_out"],
-    "sp": ["cooling_sp", "cooling_setpoint", "setpoint"],
+    "sp": ["heating_sp", "cooling_setpoint", "setpoint"],
     "band": ["comfort_band"],
+
+    # Energy demands
     "cooling demand": ["cooling demand", "cooling_demand", "cool_dmd", "cooling_power", "cooling_energy"],
-    "heating demand": ["heating demand", "heating_demand", "heating demand", "heating_power", "heating_energy"],
-    # ***FIX 2: Added dhw_demand mapping***
+    "heating demand": ["heating demand", "heating_demand", "heating_power", "heating_energy"],
     "dhw demand": ["dhw demand", "dhw_demand", "dhw_power", "dhw_energy"],
+    "non shiftable load": ["non shiftable load", "non_shiftable_load", "energy to non shiftable load"],
+
+    # Electricity consumption and generation
+    "net electricity consumption": ["net electricity consumption", "net_electricity_consumption"],
+    "positive net electricity consumption": ["positive net electricity consumption", "positive_net_electricity_consumption"],
+    "solar generation": ["solar_generation", "solar generation", "pv_generation"],
+
+    # Electricity costs and emissions
+    "net electricity cost": ["net electricity consumption cost", "net electricity cost",
+                             "Net Electricity Consumption Cost", "total_electricity_cost",
+                             "net_electricity_cost"],
+    "net electricity emission": ["net electricity consumption emission", "net electricity emission",
+                                 "Net Electricity Consumption Emission", "total_electricity_emissions",
+                                 "net_electricity_emission"],
+
+    # Fuel consumption, costs and emissions
+    "net fuel consumption": ["net_fuel_consumption", "fuel_consumption", "Net Fuel Consumption"],
+    "net fuel cost": ["net_fuel_consumption_cost", "fuel_cost", "Net Fuel Cost",
+                     "total_fuel_cost", "net_fuel_cost"],
+    "net fuel emission": ["net_fuel_consumption_emission", "fuel_emission", "Net Fuel Emission",
+                         "total_fuel_emissions", "net_fuel_emission"],
+
+    # Storage SOC (State of Charge)
+    "heating storage soc": ["heating storage soc", "heating_storage_soc"],
+    "cooling storage soc": ["cooling storage soc", "cooling_storage_soc"],
+    "electrical storage soc": ["electrical storage soc", "electrical_storage_soc",
+                               "battery soc", "battery_soc"],
+    "dhw storage soc": ["dhw storage soc", "dhw_storage_soc"],
+
+    # Energy from/to heating storage
+    "energy from heating device to heating storage": ["energy from heating device to heating storage",
+                                                       "energy_from_heating_device_to_heating_storage"],
+    "energy from heating fuel device to heating storage": ["energy from heating fuel device to heating storage",
+                                                           "energy_from_heating_fuel_device_to_heating_storage"],
+    "energy from heating storage": ["energy from heating storage", "energy_from_heating_storage"],
+
+    # Energy from/to cooling storage
+    "energy from cooling device to cooling storage": ["energy from cooling device to cooling storage",
+                                                       "energy_from_cooling_device_to_cooling_storage"],
+    "energy from cooling storage": ["energy from cooling storage", "energy_from_cooling_storage"],
+
+    # Energy from/to electrical storage
+    "electrical storage electricity consumption": ["electrical storage electricity consumption",
+                                                   "electrical_storage_electricity_consumption",
+                                                   "energy to electrical storage"],
+    "energy from electrical storage": ["energy from electrical storage", "energy_from_electrical_storage"],
+    "energy to electrical storage": ["energy to electrical storage", "energy_to_electrical_storage"],
+
+    # Energy from/to DHW storage
+    "energy from dhw device to dhw storage": ["energy from dhw device to dhw storage",
+                                              "energy_from_dhw_device_to_dhw_storage"],
+    "energy from dhw storage": ["energy from dhw storage", "energy_from_dhw_storage"],
+
+    # Energy from devices
+    "energy from heating device": ["energy from heating device", "energy_from_heating_device"],
+    "energy from heating fuel device": ["energy from heating fuel device", "energy_from_heating_fuel_device"],
+    "energy from cooling device": ["energy from cooling device", "energy_from_cooling_device"],
+    "energy from dhw device": ["energy from dhw device", "energy_from_dhw_device"],
+
+    # Detailed electricity consumption by component
+    "cooling electricity consumption": ["cooling electricity consumption", "cooling_electricity_consumption"],
+    "heating electricity consumption": ["heating electricity consumption", "heating_electricity_consumption"],
+    "dhw electricity consumption": ["dhw electricity consumption", "dhw_electricity_consumption"],
+    "dhw storage electricity consumption": ["dhw storage electricity consumption",
+                                            "dhw_storage_electricity_consumption"],
+    "cooling storage electricity consumption": ["cooling storage electricity consumption",
+                                                "cooling_storage_electricity_consumption"],
+    "heating storage electricity consumption": ["heating storage electricity consumption",
+                                                "heating_storage_electricity_consumption"],
+
+    # Pricing and carbon intensity
+    "electricity pricing": ["electricity_pricing", "electricity_price", "pricing"],
+    "fuel pricing": ["fuel_pricing", "fuel_price", "natural_gas_pricing"],
+    "carbon intensity": ["carbon_intensity", "electricity_carbon_intensity"],
+    "fuel carbon intensity": ["fuel_carbon_intensity", "natural_gas_carbon_intensity"],
 }
 
 # ***FIX 3: Updated action columns***
@@ -309,8 +386,8 @@ def load_observation_data(dataset: str, algorithm: Dict, building_id: int,
 
         # Calculate comfort bounds if possible
         if "sp" in standardized.columns and "band" in standardized.columns:
-            standardized["comfort_low"] = standardized["sp"] - standardized["band"]
-            standardized["comfort_high"] = standardized["sp"] + standardized["band"]
+            standardized["comfort_low"] = standardized["sp"] - standardized["band"]/2
+            standardized["comfort_high"] = standardized["sp"] + standardized["band"]/2
 
         # Clip demands to non-negative
         if "cooling demand" in standardized.columns:
@@ -655,7 +732,11 @@ tabs = dcc.Tabs(id='tabs', value='tab-temperature', children=[
             style={'padding': '12px', 'fontWeight': 'bold'},
             selected_style={'padding': '12px', 'fontWeight': 'bold', 'backgroundColor': '#667eea',
                             'color': 'white'}),
-    dcc.Tab(label='🔥 Heating System', value='tab-heating',
+    dcc.Tab(label='🔋 Storage', value='tab-storage',
+            style={'padding': '12px', 'fontWeight': 'bold'},
+            selected_style={'padding': '12px', 'fontWeight': 'bold', 'backgroundColor': '#667eea',
+                            'color': 'white'}),
+    dcc.Tab(label='🏙️ District', value='tab-district',
             style={'padding': '12px', 'fontWeight': 'bold'},
             selected_style={'padding': '12px', 'fontWeight': 'bold', 'backgroundColor': '#667eea',
                             'color': 'white'}),
@@ -930,9 +1011,12 @@ def render_tab_content(tab, dataset, selected_buildings, season,
         elif tab == 'tab-actions':
             return render_actions_tab(dataset, selected_buildings, selected_configs, season,
                                       start_date, end_date, configs_data)
-        elif tab == 'tab-heating':
-            return render_heating_system_tab(dataset, selected_buildings, selected_configs, season,
-                                             start_date, end_date, configs_data)
+        elif tab == 'tab-storage':
+            return render_storage_tab(dataset, selected_buildings, selected_configs, season,
+                                      start_date, end_date, configs_data)
+        elif tab == 'tab-district':
+            return render_district_tab(dataset, selected_buildings, selected_configs, season,
+                                      start_date, end_date, configs_data)
         elif tab == 'tab-kpis':
             return render_kpis_tab(dataset, selected_buildings, selected_configs, season,
                                    start_date, end_date, configs_data)
@@ -960,14 +1044,17 @@ def render_temperature_tab(dataset, selected_buildings, selected_configs, season
         f"[DEBUG] render_temperature_tab: Loading data for {len(selected_configs)} configuration(s) and {len(selected_buildings)} building(s)")
 
     # Create subplots for each building
-    from plotly.subplots import make_subplots
     n_buildings = len(selected_buildings)
+
+    # Calculate dynamic spacing based on number of buildings
+    # More buildings = tighter spacing to maintain readability
+    vertical_spacing = max(0.02, min(0.05, 1.0 / (n_buildings * 20)))
 
     fig = make_subplots(
         rows=n_buildings, cols=1,
         subplot_titles=[f"Building {bid}" for bid in selected_buildings],
         shared_xaxes=True,
-        vertical_spacing=0.05
+        vertical_spacing=vertical_spacing
     )
 
     data_loaded = False
@@ -1071,10 +1158,29 @@ def render_temperature_tab(dataset, selected_buildings, selected_configs, season
                    style={'color': '#95a5a6'})
         ], style={'textAlign': 'center', 'padding': '80px'})
 
-    # Update axes
+    # Update axes and add background colors to distinguish buildings
     for i in range(1, n_buildings + 1):
         fig.update_yaxes(title_text="Temperature (°C)", row=i, col=1)
+
+        # Add alternating background colors for each building
+        # Even buildings get a light blue tint, odd buildings stay white
+        if i % 2 == 0:
+            fig.update_yaxes(
+                showgrid=True,
+                gridcolor='rgba(220, 230, 242, 0.5)',
+                row=i, col=1
+            )
+            fig.update_xaxes(
+                showgrid=True,
+                gridcolor='rgba(220, 230, 242, 0.5)',
+                row=i, col=1
+            )
+
     fig.update_xaxes(title_text="Time", row=n_buildings, col=1)
+
+    # Calculate height: minimum 350px per subplot to maintain readability
+    # This ensures plots don't become too thin when many buildings are selected
+    plot_height = max(350 * n_buildings, 400)
 
     fig.update_layout(
         title=dict(
@@ -1082,7 +1188,7 @@ def render_temperature_tab(dataset, selected_buildings, selected_configs, season
             font=dict(size=18, color='#2c3e50')
         ),
         hovermode='x unified',
-        height=400 * n_buildings,
+        height=plot_height,
         template='plotly_white',
         legend=dict(
             orientation="h",
@@ -1094,6 +1200,25 @@ def render_temperature_tab(dataset, selected_buildings, selected_configs, season
         )
     )
 
+    # Add colored background rectangles for better building separation
+    if n_buildings > 1:
+        for i in range(1, n_buildings + 1):
+            if i % 2 == 0:
+                # Calculate subplot domain positions (approximation)
+                # Each subplot takes 1/n_buildings of the vertical space
+                y_start = (n_buildings - i) / n_buildings
+                y_end = (n_buildings - i + 1) / n_buildings
+
+                fig.add_shape(
+                    type="rect",
+                    xref="paper", yref="paper",
+                    x0=0, y0=y_start,
+                    x1=1, y1=y_end,
+                    fillcolor="rgba(173, 216, 230, 0.08)",
+                    layer="below",
+                    line_width=0,
+                )
+
     return dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False})
 
 
@@ -1101,14 +1226,21 @@ def render_demands_tab(dataset, selected_buildings, selected_configs, season,
                        start_date, end_date, configs_data):
     """Render energy demands visualization for multiple buildings."""
     n_buildings = len(selected_buildings)
+    total_rows = n_buildings * 3  # 3 demand types per building
+
+    # Calculate dynamic spacing based on number of rows
+    # Must be less than 1/(total_rows - 1) to avoid errors
+    # More rows = tighter spacing to maintain readability
+    max_allowed_spacing = 1.0 / (total_rows - 1) if total_rows > 1 else 0.03
+    vertical_spacing = max(0.01, min(0.03, max_allowed_spacing * 0.8))  # Use 80% of max to be safe
 
     # ***FIX 2: Update rows and titles for 3 demands***
     fig = make_subplots(
-        rows=n_buildings * 3, cols=1,
+        rows=total_rows, cols=1,
         subplot_titles=[item for bid in selected_buildings for item in
                         (f"Building {bid} - Cooling", f"Building {bid} - Heating", f"Building {bid} - DHW")],
         shared_xaxes=True,
-        vertical_spacing=0.03
+        vertical_spacing=vertical_spacing
     )
 
     # Load data for each building
@@ -1179,14 +1311,18 @@ def render_demands_tab(dataset, selected_buildings, selected_configs, season,
         fig.update_yaxes(title_text="Power (kW)", row=i, col=1)
     fig.update_xaxes(title_text="Time", row=n_buildings * 3, col=1)
 
+    # Calculate height: minimum 250px per subplot (demand type) to maintain readability
+    # This ensures plots don't become too thin when many buildings are selected
+    # With 20 buildings × 3 demands = 60 subplots, height will be 15,000px
+    plot_height = max(250 * n_buildings * 3, 600)
+
     fig.update_layout(
         title=dict(
             text=f"Energy Demands - {len(selected_buildings)} Building(s), {len(selected_configs)} Configuration(s)",
             font=dict(size=18, color='#2c3e50')
         ),
         hovermode='x unified',
-        # ***FIX 2: Update figure height***
-        height=300 * n_buildings * 3,
+        height=plot_height,
         template='plotly_white',
         showlegend=True,
         legend=dict(
@@ -2008,7 +2144,8 @@ def render_comparison_tab(dataset, selected_buildings, selected_configs, season,
                 angularaxis=dict(
                     gridcolor='lightgray',
                     linecolor='gray'
-                )
+                ),
+                domain=dict(x=[0, 1], y=[0.15, 1])  # Reduce polar plot size to make room for legend
             ),
             showlegend=True,
             title=dict(
@@ -2017,8 +2154,18 @@ def render_comparison_tab(dataset, selected_buildings, selected_configs, season,
             ),
             plot_bgcolor='white',
             paper_bgcolor='white',
-            height=500,
-            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+            height=580,  # Increased height to accommodate legend
+            margin=dict(l=80, r=80, t=100, b=120),  # Increased bottom margin for legend
+            legend=dict(
+                orientation="h",
+                yanchor="top",
+                y=-0.05,  # Position legend just below the plot
+                xanchor="center",
+                x=0.5,
+                bgcolor='rgba(255,255,255,0.9)',
+                bordercolor='#e0e0e0',
+                borderwidth=1
+            )
         )
 
         # Create min/max values table
@@ -2159,35 +2306,34 @@ def render_comparison_tab(dataset, selected_buildings, selected_configs, season,
     # Create layout
     graphs = []
 
-    # Row 1: Energy-Comfort scatter
+    # Row 1: Energy-Comfort scatter (full width)
     graphs.append(
         html.Div([
             dcc.Graph(figure=fig1, config={'displayModeBar': True, 'displaylogo': False})
-        ], style={'marginBottom': '30px'})
+        ], style={'width': '100%', 'marginBottom': '30px'})
     )
 
-    # Row 2: Cost-Emissions scatter and Radar chart with table
-    if fig2 and fig3:
-        radar_content = [dcc.Graph(figure=fig3, config={'displayModeBar': True, 'displaylogo': False})]
-        if radar_table:
-            radar_content.append(radar_table)
-
+    # Row 2: Cost-Emissions scatter (full width)
+    if fig2:
         graphs.append(
             html.Div([
-                html.Div([
-                    dcc.Graph(figure=fig2, config={'displayModeBar': True, 'displaylogo': False})
-                ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'}),
-                html.Div(radar_content,
-                        style={'width': '48%', 'display': 'inline-block', 'marginLeft': '4%', 'verticalAlign': 'top'}),
-            ], style={'marginBottom': '30px'})
+                dcc.Graph(figure=fig2, config={'displayModeBar': True, 'displaylogo': False})
+            ], style={'width': '100%', 'marginBottom': '30px'})
         )
-    elif fig3:
-        radar_content = [dcc.Graph(figure=fig3, config={'displayModeBar': True, 'displaylogo': False})]
-        if radar_table:
-            radar_content.append(radar_table)
 
+    # Row 3: Radar chart (left) and Table (right)
+    if fig3:
         graphs.append(
-            html.Div(radar_content, style={'marginBottom': '30px'})
+            html.Div([
+                # Radar chart on the left
+                html.Div([
+                    dcc.Graph(figure=fig3, config={'displayModeBar': True, 'displaylogo': False})
+                ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+                # Table on the right
+                html.Div([
+                    radar_table if radar_table else html.Div()
+                ], style={'width': '48%', 'display': 'inline-block', 'marginLeft': '4%', 'verticalAlign': 'top'}),
+            ], style={'width': '100%', 'marginBottom': '30px'})
         )
 
     # Interpretation guide
@@ -2231,7 +2377,112 @@ def render_comparison_tab(dataset, selected_buildings, selected_configs, season,
             })
         ]),
         html.Div(graphs),
-        guide
+        guide,
+        # Best Configuration Finder Section
+        html.Hr(style={'marginTop': '50px', 'marginBottom': '30px', 'border': '2px solid #667eea'}),
+        render_best_config_finder(dataset, selected_configs, season, start_date, end_date, configs_data, selected_buildings)
+    ])
+
+
+def render_best_config_finder(dataset, selected_configs, season, start_date, end_date, configs_data, selected_buildings):
+    """
+    Render the Best Configuration Finder section with custom weights and ranking.
+    """
+    return html.Div([
+        html.H3([
+            html.Span("🏆", style={'marginRight': '10px'}),
+            "Best Configuration Finder"
+        ], style={
+            'marginBottom': 20,
+            'color': '#2c3e50',
+            'borderBottom': '3px solid #667eea',
+            'paddingBottom': '10px'
+        }),
+
+        # Description
+        html.P([
+            "Trova la migliore configurazione in base ai tuoi obiettivi personalizzati. ",
+            "Regola i pesi per dare priorità a comfort, costi o emissioni, poi clicca 'Calculate Best Configuration' per vedere il ranking."
+        ], style={'color': '#34495e', 'marginBottom': '25px', 'lineHeight': '1.6'}),
+
+        # Weight Sliders Toolbar
+        html.Div([
+            html.H4("⚖️ Custom Weights", style={'color': '#2c3e50', 'marginBottom': '20px'}),
+            html.Div([
+                # Comfort Weight
+                html.Div([
+                    html.Label("Comfort Violations Weight:", style={'fontWeight': 'bold', 'color': '#667eea'}),
+                    dcc.Slider(
+                        id='weight-comfort',
+                        min=0,
+                        max=1,
+                        step=0.05,
+                        value=0.4,
+                        marks={i/10: f'{i/10:.1f}' for i in range(0, 11, 2)},
+                        tooltip={"placement": "bottom", "always_visible": True}
+                    ),
+                ], style={'width': '30%', 'display': 'inline-block', 'paddingRight': '3%', 'verticalAlign': 'top'}),
+
+                # Cost Weight
+                html.Div([
+                    html.Label("Cost Weight:", style={'fontWeight': 'bold', 'color': '#667eea'}),
+                    dcc.Slider(
+                        id='weight-cost',
+                        min=0,
+                        max=1,
+                        step=0.05,
+                        value=0.3,
+                        marks={i/10: f'{i/10:.1f}' for i in range(0, 11, 2)},
+                        tooltip={"placement": "bottom", "always_visible": True}
+                    ),
+                ], style={'width': '30%', 'display': 'inline-block', 'paddingRight': '3%', 'verticalAlign': 'top'}),
+
+                # Emissions Weight
+                html.Div([
+                    html.Label("Emissions Weight:", style={'fontWeight': 'bold', 'color': '#667eea'}),
+                    dcc.Slider(
+                        id='weight-emissions',
+                        min=0,
+                        max=1,
+                        step=0.05,
+                        value=0.3,
+                        marks={i/10: f'{i/10:.1f}' for i in range(0, 11, 2)},
+                        tooltip={"placement": "bottom", "always_visible": True}
+                    ),
+                ], style={'width': '30%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+            ], style={'marginBottom': '20px'}),
+
+            # Weight sum indicator
+            html.Div(id='weight-sum-indicator', style={'marginBottom': '15px', 'fontSize': '14px'}),
+
+            # Calculate Button
+            html.Button(
+                '🔍 Calculate Best Configuration',
+                id='calculate-best-config-btn',
+                n_clicks=0,
+                style={
+                    'backgroundColor': '#667eea',
+                    'color': 'white',
+                    'border': 'none',
+                    'padding': '12px 30px',
+                    'fontSize': '16px',
+                    'fontWeight': 'bold',
+                    'borderRadius': '8px',
+                    'cursor': 'pointer',
+                    'boxShadow': '0 4px 6px rgba(0,0,0,0.1)',
+                    'transition': 'all 0.3s'
+                }
+            ),
+        ], style={
+            'backgroundColor': '#f8f9fa',
+            'padding': '25px',
+            'borderRadius': '10px',
+            'marginBottom': '30px',
+            'border': '2px solid #e0e0e0'
+        }),
+
+        # Results Container
+        html.Div(id='best-config-results', style={'marginTop': '30px'})
     ])
 
 
@@ -2239,188 +2490,205 @@ def render_comparison_tab(dataset, selected_buildings, selected_configs, season,
 # HEATING SYSTEM VISUALIZATION
 # ============================================================================
 
-def create_heat_demand_dashboard(csv_path: str, building_id: int = None):
+def create_storage_dashboard(df: pd.DataFrame, building_id: int = None):
     """
-    Create a dashboard with visualizations of heating demand and storage.
+    Create a dashboard with visualizations of storage systems (heating, cooling, electrical).
 
     Parameters
     ----------
-    csv_path : str
-        Path to the CSV file with observation data
+    df: pd.DataFrame
+        DataFrame containing time series data with storage information
     building_id : int, optional
         Building ID to display (for the title)
 
     Returns
     -------
     fig : plotly.graph_objects.Figure
-        Plotly figure with heating system graphs
+        Plotly figure with storage balance graphs
     """
-    # Load data
-    df = pd.read_csv(csv_path)
-
-    # Create a standardized dataframe with correct column mappings
-    # These match the actual column names in the observation CSV files
-    heating_cols_map = {
-        'heating_demand': find_column(df, ['heating_demand', 'heating demand']),
-        'energy_from_heating_fuel_device': find_column(df, ['energy_from_heating_fuel_device', 'energy from heating fuel device']),
-        'energy_from_heating_device': find_column(df, ['energy_from_heating_device', 'energy from heating device']),
-        'heating_storage_to_building': find_column(df, ['heating_storage_to_building', 'energy from heating storage']),
-        'heating_storage_soc': find_column(df, ['heating_storage_soc', 'heating storage soc']),
-        'heating_device_to_storage': find_column(df, ['heating_device_to_storage', 'energy from heating device to heating storage']),
-        'heating_fuel_device_to_storage': find_column(df, ['heating_fuel_device_to_storage', 'energy from heating fuel device to heating storage'])
+    # Define column mappings for all storage types
+    storage_columns = {
+        'heating': {
+            'soc': find_column(df, ['heating storage soc', 'heating_storage_soc']),
+            'charge_sources': [
+                {
+                    'column': find_column(df, ['energy from heating device to heating storage']),
+                    'name': 'Electric Device Charge',
+                    'color': 'rgba(255, 99, 71, 0.7)'
+                },
+                {
+                    'column': find_column(df, ['energy from heating fuel device to heating storage']),
+                    'name': 'Fuel Device Charge',
+                    'color': 'rgba(255, 165, 0, 0.7)'
+                }
+            ],
+            'discharge': find_column(df, ['energy from heating storage']),
+            'discharge_color': 'rgba(30, 144, 255, 0.7)',
+            'soc_color': 'purple'
+        },
+        'cooling': {
+            'soc': find_column(df, ['cooling storage soc', 'cooling_storage_soc']),
+            'charge_sources': [
+                {
+                    'column': find_column(df, ['energy from cooling device to cooling storage']),
+                    'name': 'Charge',
+                    'color': 'rgba(46, 204, 113, 0.7)'
+                }
+            ],
+            'discharge': find_column(df, ['energy from cooling storage']),
+            'discharge_color': 'rgba(52, 152, 219, 0.7)',
+            'soc_color': 'teal'
+        },
+        'electrical': {
+            'soc': find_column(df, ['electrical storage soc', 'electrical_storage_soc', 'battery soc', 'battery_soc']),
+            'consumption_column': find_column(df, ['electrical storage electricity consumption']),
+            'discharge_color': 'rgba(230, 126, 34, 0.7)',
+            'charge_color': 'rgba(241, 196, 15, 0.7)',
+            'soc_color': 'darkgoldenrod'
+        }
     }
 
-    # Create a new dataframe with standardized column names
-    df_standardized = pd.DataFrame(index=df.index)
-    for new_name, old_name in heating_cols_map.items():
-        if old_name and old_name in df.columns:
-            df_standardized[new_name] = pd.to_numeric(df[old_name], errors='coerce').fillna(0)
-        else:
-            df_standardized[new_name] = 0.0
+    # Determine which storages are available
+    available_storages = []
+    for storage_type, cols in storage_columns.items():
+        if cols['soc'] and cols['soc'] in df.columns:
+            # Check if there's actual data (not all zeros)
+            if df[cols['soc']].abs().sum() > 0.001:
+                available_storages.append(storage_type)
 
-    # Use the standardized dataframe
-    df = df_standardized
+    if not available_storages:
+        # Return empty figure with message
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No storage data available",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5,
+            showarrow=False,
+            font=dict(size=20, color="#e74c3c")
+        )
+        return fig
 
-    # Create figure with subplots
+    # Create subplots - one row per available storage
+    num_storages = len(available_storages)
+    subplot_titles = [f'{storage.capitalize()} Storage Balance' for storage in available_storages]
+
     fig = make_subplots(
-        rows=2, cols=1,
-        subplot_titles=(
-            'Heating Demand and Energy Sources',
-            'Heating Storage Charge and Discharge'
-        ),
-        vertical_spacing=0.12,
-        specs=[[{"secondary_y": False}], [{"secondary_y": True}]]
+        rows=num_storages,
+        cols=1,
+        subplot_titles=subplot_titles,
+        vertical_spacing=0.08,
+        specs=[[{"secondary_y": True}] for _ in range(num_storages)]
     )
 
-    # Graph 1: Heat Demand (line) and Energy Sources (stacked area)
+    for idx, storage_type in enumerate(available_storages, start=1):
+        cols = storage_columns[storage_type]
 
-    # Heating demand total line
-    fig.add_trace(
-        go.Scatter(
-            x=df.index,
-            y=df['heating_demand'],
-            name='Heating Demand',
-            line=dict(color='red', width=2.5),
-            mode='lines',
-            legendgroup='demand'
-        ),
-        row=1, col=1
-    )
+        # Prepare SOC data
+        soc_data = pd.to_numeric(df[cols['soc']], errors='coerce').fillna(0)
 
-    # Area 1: Energy from electric device (heating_device)
-    fig.add_trace(
-        go.Scatter(
-            x=df.index,
-            y=df['energy_from_heating_device'],
-            name='From Electric Device',
-            fill='tozeroy',
-            fillcolor='rgba(255, 165, 0, 0.6)',
-            line=dict(color='orange', width=1),
-            legendgroup='sources'
-        ),
-        row=1, col=1
-    )
+        # Handle electrical storage differently (single consumption column)
+        if storage_type == 'electrical' and 'consumption_column' in cols:
+            consumption_col = cols['consumption_column']
+            if consumption_col and consumption_col in df.columns:
+                consumption_data = pd.to_numeric(df[consumption_col], errors='coerce').fillna(0)
+                charge_data = consumption_data.clip(lower=0)
+                discharge_data = -consumption_data.clip(upper=0)
 
-    # Area 2: Energy from fuel device (heating_fuel_device) - stacked
-    if 'energy_from_heating_fuel_device' in df.columns and df['energy_from_heating_fuel_device'].sum() > 0:
+                # Add charge bar
+                if charge_data.sum() > 0:
+                    fig.add_trace(
+                        go.Bar(
+                            x=df.index,
+                            y=charge_data,
+                            name='Charge',
+                            marker=dict(color=cols['charge_color']),
+                            legendgroup=f'{storage_type}_ops',
+                            showlegend=True
+                        ),
+                        row=idx, col=1
+                    )
+
+                # Add discharge bar
+                if discharge_data.sum() > 0:
+                    fig.add_trace(
+                        go.Bar(
+                            x=df.index,
+                            y=-discharge_data,
+                            name='Discharge',
+                            marker=dict(color=cols['discharge_color']),
+                            legendgroup=f'{storage_type}_ops',
+                            showlegend=True
+                        ),
+                        row=idx, col=1
+                    )
+        else:
+            # Handle heating and cooling with charge_sources
+            if 'charge_sources' in cols:
+                for charge_source in cols['charge_sources']:
+                    charge_col = charge_source['column']
+                    if charge_col and charge_col in df.columns:
+                        charge_data = pd.to_numeric(df[charge_col], errors='coerce').fillna(0)
+
+                        # Only add trace if there's actual data
+                        if charge_data.sum() > 0:
+                            fig.add_trace(
+                                go.Bar(
+                                    x=df.index,
+                                    y=charge_data,
+                                    name=charge_source['name'],
+                                    marker=dict(color=charge_source['color']),
+                                    legendgroup=f'{storage_type}_ops',
+                                    showlegend=True
+                                ),
+                                row=idx, col=1
+                            )
+
+            # Handle discharge
+            discharge_col = cols.get('discharge')
+            if discharge_col and discharge_col in df.columns:
+                discharge_data = pd.to_numeric(df[discharge_col], errors='coerce').fillna(0)
+
+                if discharge_data.sum() > 0:
+                    fig.add_trace(
+                        go.Bar(
+                            x=df.index,
+                            y=-discharge_data,
+                            name=f'{storage_type.capitalize()} Discharge',
+                            marker=dict(color=cols['discharge_color']),
+                            legendgroup=f'{storage_type}_ops',
+                            showlegend=True
+                        ),
+                        row=idx, col=1
+                    )
+
+        # Add SOC line on secondary axis
         fig.add_trace(
             go.Scatter(
                 x=df.index,
-                y=df['energy_from_heating_device'] + df['energy_from_heating_fuel_device'],
-                name='From Fuel Device',
-                fill='tonexty',
-                fillcolor='rgba(255, 69, 0, 0.5)',
-                line=dict(color='orangered', width=1),
-                legendgroup='sources'
+                y=soc_data,
+                name=f'{storage_type.capitalize()} SOC',
+                line=dict(color=cols['soc_color'], width=2.5, dash='dot'),
+                mode='lines',
+                legendgroup=f'{storage_type}_soc',
+                showlegend=True
             ),
-            row=1, col=1
+            row=idx, col=1, secondary_y=True
         )
 
-        # Area 3: Energy from storage - stacked on top
-        fig.add_trace(
-            go.Scatter(
-                x=df.index,
-                y=df['energy_from_heating_device'] + df['energy_from_heating_fuel_device'] + df['heating_storage_to_building'],
-                name='From Thermal Storage',
-                fill='tonexty',
-                fillcolor='rgba(0, 128, 255, 0.5)',
-                line=dict(color='blue', width=1),
-                legendgroup='sources'
-            ),
-            row=1, col=1
-        )
-    else:
-        # Only electric device and storage
-        fig.add_trace(
-            go.Scatter(
-                x=df.index,
-                y=df['energy_from_heating_device'] + df['heating_storage_to_building'],
-                name='From Thermal Storage',
-                fill='tonexty',
-                fillcolor='rgba(0, 128, 255, 0.5)',
-                line=dict(color='blue', width=1),
-                legendgroup='sources'
-            ),
-            row=1, col=1
-        )
-
-    # Graph 2: Storage Charge/Discharge with SOC
-
-    # Calculate total charge to storage (from both electric and fuel devices)
-    total_charge = df['heating_device_to_storage'] + df.get('heating_fuel_device_to_storage', 0)
-
-    # Green bar: Storage charging (positive)
-    fig.add_trace(
-        go.Bar(
-            x=df.index,
-            y=total_charge,
-            name='Storage Charge',
-            marker=dict(color='rgba(46, 204, 113, 0.7)'),
-            legendgroup='storage_ops'
-        ),
-        row=2, col=1
-    )
-
-    # Red bar: Storage discharge (negative for visualization)
-    fig.add_trace(
-        go.Bar(
-            x=df.index,
-            y=-df['heating_storage_to_building'],
-            name='Storage Discharge',
-            marker=dict(color='rgba(231, 76, 60, 0.7)'),
-            legendgroup='storage_ops'
-        ),
-        row=2, col=1
-    )
-
-    # SOC line on secondary axis
-    fig.add_trace(
-        go.Scatter(
-            x=df.index,
-            y=df['heating_storage_soc'],
-            name='Storage SOC (%)',
-            line=dict(color='purple', width=2.5, dash='dot'),
-            mode='lines',
-            legendgroup='soc'
-        ),
-        row=2, col=1,
-        secondary_y=True
-    )
-
-    # Update axes layout
-    fig.update_xaxes(title_text="Timestep", row=2, col=1)
-    fig.update_yaxes(title_text="Energy (kWh)", row=1, col=1)
-    fig.update_yaxes(title_text="Energy (kWh)", row=2, col=1, secondary_y=False)
-    fig.update_yaxes(title_text="SOC (%)", row=2, col=1, secondary_y=True, range=[0, 1])
+        # Update axes
+        fig.update_xaxes(title_text="Timestep" if idx == num_storages else "", row=idx, col=1)
+        fig.update_yaxes(title_text="Energy (kWh)", row=idx, col=1, secondary_y=False)
+        fig.update_yaxes(title_text="SOC", row=idx, col=1, secondary_y=True, range=[0, 1])
 
     # General layout
-    title_text = f"Heating System Dashboard"
+    title_text = f"Storage Systems Dashboard"
     if building_id is not None:
         title_text += f" - Building {building_id}"
 
     fig.update_layout(
-        height=900,
+        height=400 * num_storages,
         showlegend=True,
+        barmode='stack',  # Stack the bars instead of overlaying
         title=dict(
             text=title_text,
             font=dict(size=18, color='#2c3e50'),
@@ -2434,7 +2702,7 @@ def create_heat_demand_dashboard(csv_path: str, building_id: int = None):
             yanchor="top",
             y=1,
             xanchor="right",
-            x=1.15,
+            x=1.12,
             bgcolor='rgba(255,255,255,0.9)',
             bordercolor='#e0e0e0',
             borderwidth=1
@@ -2444,10 +2712,9 @@ def create_heat_demand_dashboard(csv_path: str, building_id: int = None):
     return fig
 
 
-def render_heating_system_tab(dataset, selected_buildings, selected_configs, season,
-                               start_date, end_date, configs_data):
+def render_storage_tab(dataset, selected_buildings, selected_configs, season, start_date, end_date, configs_data):
     """
-    Render heating system visualization showing demand, energy sources, and storage dynamics.
+    Render storage systems visualization showing charge/discharge balance for all available storages.
 
     Parameters
     ----------
@@ -2469,11 +2736,11 @@ def render_heating_system_tab(dataset, selected_buildings, selected_configs, sea
     Returns
     -------
     html.Div
-        Dash HTML div containing the heating system visualizations
+        Dash HTML div containing the storage visualizations
     """
     if not selected_buildings:
         return html.Div([
-            html.Div("🔥", style={'fontSize': '48px', 'marginBottom': '20px'}),
+            html.Div("🔋", style={'fontSize': '48px', 'marginBottom': '20px'}),
             html.H4("Select at least one building", style={'color': '#e74c3c'}),
         ], style={'textAlign': 'center', 'padding': '80px'})
 
@@ -2481,7 +2748,6 @@ def render_heating_system_tab(dataset, selected_buildings, selected_configs, sea
     building_id = selected_buildings[0]
 
     graphs = []
-
     for config_key in selected_configs:
         config = configs_data[config_key]
 
@@ -2502,69 +2768,33 @@ def render_heating_system_tab(dataset, selected_buildings, selected_configs, sea
         if df_filtered.empty:
             continue
 
-        # Prepare data for the graph
-        # Make sure necessary columns exist
-        heating_cols_map = {
-            'heating_demand': find_column(df_filtered, ['heating_demand', 'heating demand']),
-            'energy_from_heating_fuel_device': find_column(df_filtered, ['energy from heating fuel device']),
-            'energy_from_heating_device': find_column(df_filtered, ['energy from heating device']),
-            'heating_storage_to_building': find_column(df_filtered, ['energy from heating storage']),
+        # Create the storage dashboard
+        fig = create_storage_dashboard(df_filtered, building_id)
 
-            'heating_storage_soc': find_column(df_filtered, ['heating storage soc']),
-            'heating_device_to_storage': find_column(df_filtered, ['energy from heating device to heating storage']),
-            'heating_fuel_device_to_storage': find_column(df_filtered, ['energy from heating fuel device to heating storage'])
-        }
-
-        # Create a temporary dataframe with renamed columns
-        temp_df = pd.DataFrame(index=df_filtered.index)
-        for new_name, old_name in heating_cols_map.items():
-            if old_name:
-                temp_df[new_name] = pd.to_numeric(df_filtered[old_name], errors='coerce').fillna(0)
-            else:
-                temp_df[new_name] = 0.0
-
-        # Save temporarily as CSV (for compatibility with the existing function)
-        import tempfile
-        import os
-
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, newline='') as f:
-            temp_df.to_csv(f, index=False)
-            temp_path = f.name
-
-        try:
-            # Crea il grafico
-            fig = create_heat_demand_dashboard(temp_path, building_id)
-
-            # Update title with configuration name
-            fig.update_layout(
-                title=dict(
-                    text=f"Heating System - Building {building_id}<br><sub>{full_config_name}</sub>",
-                    font=dict(size=18, color='#2c3e50')
-                )
+        # Update title with configuration name
+        fig.update_layout(
+            title=dict(
+                text=f"Storage Systems - Building {building_id}<br><sub>{full_config_name}</sub>",
+                font=dict(size=18, color='#2c3e50')
             )
+        )
 
-            graphs.append(
-                html.Div([
-                    html.H4(full_config_name, style={
-                        'color': '#667eea',
-                        'marginBottom': '15px',
-                        'marginTop': '30px' if graphs else '0px'
-                    }),
-                    dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False})
-                ])
-            )
-        finally:
-            # Clean up temporary file
-            try:
-                os.unlink(temp_path)
-            except:
-                pass
+        graphs.append(
+            html.Div([
+                html.H4(full_config_name, style={
+                    'color': '#667eea',
+                    'marginBottom': '15px',
+                    'marginTop': '30px' if graphs else '0px'
+                }),
+                dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False})
+            ])
+        )
 
     if not graphs:
         return html.Div([
             html.Div("📊", style={'fontSize': '48px', 'marginBottom': '20px'}),
             html.H4("No data available", style={'color': '#e74c3c'}),
-            html.P("Please verify that heating system data is present in the CSV files.",
+            html.P("Please verify that storage data is present in the CSV files.",
                    style={'color': '#95a5a6'})
         ], style={'textAlign': 'center', 'padding': '80px'})
 
@@ -2573,20 +2803,34 @@ def render_heating_system_tab(dataset, selected_buildings, selected_configs, sea
         html.H4("📖 Interpretation Guide", style={'marginBottom': '15px', 'color': '#2c3e50'}),
         html.Ul([
             html.Li([
-                html.Strong("Graph 1 - Demand and Sources: "),
-                "The red line shows the total heating demand. The colored areas show how this demand is satisfied by different sources (electric device, fuel device, storage)."
+                html.Strong("Storage Balance: "),
+                "Each graph shows the charge/discharge dynamics for a specific storage type (heating, cooling, or electrical)."
             ]),
             html.Li([
-                html.Strong("Stacked areas: "),
-                "The sum of the areas should equal the heating demand (red line). The orange area represents energy from the electric device (heat pump or electric heater), the red area shows the contribution from the fuel device, and the blue area represents the storage."
+                html.Strong("Heating Storage - Dual Charge Sources: "),
+                html.Span([
+                    "For heating storage, charge is shown separately for ",
+                    html.Span("Electric Device", style={'color': 'rgb(255, 99, 71)', 'fontWeight': 'bold'}),
+                    " (heat pump/electric heater) and ",
+                    html.Span("Fuel Device", style={'color': 'rgb(255, 165, 0)', 'fontWeight': 'bold'}),
+                    " (gas boiler). This allows you to see the contribution of each energy source."
+                ])
             ]),
             html.Li([
-                html.Strong("Graph 2 - Storage: "),
-                "Green bars show when the storage is being charged, red bars show when it's being discharged. The purple dotted line shows the state of charge (SOC) of the thermal storage."
+                html.Strong("Charge (positive bars): "),
+                "Energy being stored. For cooling/electrical storage, single bar. For heating, two bars (electric + fuel)."
+            ]),
+            html.Li([
+                html.Strong("Discharge (negative bars): "),
+                "Energy being released from storage to meet demands. Shown as negative values for easy visualization."
+            ]),
+            html.Li([
+                html.Strong("SOC Line (dotted): "),
+                "State of Charge shows the current energy level in the storage as a fraction of total capacity (0-1 range). Purple line on secondary axis."
             ]),
             html.Li([
                 html.Strong("Optimal strategy: "),
-                "Ideally, the electric device is used when there is surplus energy (from PV or electrical storage), while the fuel device compensates when necessary. Thermal storage allows decoupling of production and consumption."
+                "Charge when energy is cheap/abundant (e.g., solar production, off-peak hours). Discharge when needed or when grid energy is expensive. For heating, prioritize electric device when renewable energy is available, use fuel device as backup."
             ]),
         ], style={'lineHeight': '1.8', 'color': '#34495e'})
     ], style={
@@ -2600,8 +2844,1182 @@ def render_heating_system_tab(dataset, selected_buildings, selected_configs, sea
     return html.Div([
         html.Div([
             html.H3([
-                html.Span("🔥", style={'marginRight': '10px'}),
-                f"Heating System - Building {building_id}"
+                html.Span("🔋", style={'marginRight': '10px'}),
+                f"Storage Systems - Building {building_id}"
+            ], style={
+                'marginBottom': 20,
+                'color': '#2c3e50',
+                'borderBottom': '3px solid #667eea',
+                'paddingBottom': '10px'
+            })
+        ]),
+        html.Div(graphs),
+        guide
+    ])
+# ============================================================================
+# DISTRICT LEVEL VISUALIZATION
+# ============================================================================
+
+def render_district_tab(dataset, selected_buildings, selected_configs, season,
+                       start_date, end_date, configs_data):
+    """
+    Render district-level aggregated metrics visualization.
+
+    Shows cumulative electrical consumption, heating demand, and other important KPIs
+    aggregated across all selected buildings for each configuration.
+
+    Parameters
+    ----------
+    dataset : str
+        Dataset name
+    selected_buildings : list
+        List of building IDs
+    selected_configs : list
+        List of selected configuration keys
+    season : str
+        Season ('winter' or 'summer')
+    start_date : str
+        Start date for filtering
+    end_date : str
+        End date for filtering
+    configs_data : dict
+        Dictionary of configuration data
+
+    Returns
+    -------
+    html.Div
+        Dash HTML div containing district-level visualizations
+    """
+
+    print(f"\n[DEBUG] render_district_tab: Aggregating data for {len(selected_buildings)} buildings")
+
+    if not selected_buildings or not selected_configs:
+        return html.Div([
+            html.Div("🏙️", style={'fontSize': '48px', 'marginBottom': '20px'}),
+            html.H4("Select buildings and configurations", style={'color': '#e74c3c'}),
+            html.P("Please select at least one building and one configuration to view district metrics.",
+                   style={'color': '#95a5a6'})
+        ], style={'textAlign': 'center', 'padding': '80px'})
+
+    # Dictionary to store aggregated data for each configuration
+    district_data = {}
+
+    for config_key in selected_configs:
+        config = configs_data[config_key]
+
+        # Configuration name
+        algo_name_formatted = config['algorithm'].replace('_', ' ').title()
+        config_display_name = config['display_name']
+        full_config_name = f"{algo_name_formatted}: {config_display_name}"
+
+        print(f"[DEBUG] Processing configuration: {full_config_name}")
+
+        # Initialize aggregated dataframes
+        aggregated_data = None
+
+        # Aggregate data across all selected buildings
+        for building_id in selected_buildings:
+            # Load observation data
+            df = load_observation_data(dataset, config, building_id, season)
+
+            if df is None or df.empty:
+                print(f"[WARNING] No data for building {building_id}")
+                continue
+
+            # Filter by date range
+            df_filtered = df.loc[start_date:end_date].copy()
+
+            if df_filtered.empty:
+                continue
+
+            # Load the raw CSV to get all columns
+            algo_path = Path(config['path']) if isinstance(config['path'], str) else config['path']
+            obs_file = (DATA_DIR / dataset / "schema.json" / "obs" /
+                       algo_path / f"obs_building_{building_id}.csv")
+
+            if obs_file.exists():
+                df_raw = pd.read_csv(obs_file)
+
+                # Add datetime index
+                start_date_dt = SEASONS.get(season, SEASONS["winter"])
+                df_raw.index = pd.date_range(start=start_date_dt, periods=len(df_raw), freq="h")
+                df_raw_filtered = df_raw.loc[start_date:end_date]
+
+                # Extract important columns for district aggregation
+                cols_to_aggregate = {}
+
+                # Electrical consumption
+                net_elec = find_column(df_raw_filtered, ['net electricity consumption', 'net_electricity_consumption'])
+                if net_elec:
+                    cols_to_aggregate['net_electricity_consumption'] = pd.to_numeric(df_raw_filtered[net_elec], errors='coerce').fillna(0)
+
+                pos_elec = find_column(df_raw_filtered, ['positive net electricity consumption'])
+                if pos_elec:
+                    cols_to_aggregate['positive_electricity_consumption'] = pd.to_numeric(df_raw_filtered[pos_elec], errors='coerce').fillna(0)
+
+                # Solar generation
+                solar = find_column(df_raw_filtered, ['solar_generation', 'solar generation'])
+                if solar:
+                    cols_to_aggregate['solar_generation'] = pd.to_numeric(df_raw_filtered[solar], errors='coerce').fillna(0)
+
+                # Demands
+                heating = find_column(df_raw_filtered, ['heating_demand', 'heating demand'])
+                if heating:
+                    cols_to_aggregate['heating_demand'] = pd.to_numeric(df_raw_filtered[heating], errors='coerce').fillna(0)
+
+                cooling = find_column(df_raw_filtered, ['cooling_demand', 'cooling demand'])
+                if cooling:
+                    cols_to_aggregate['cooling_demand'] = pd.to_numeric(df_raw_filtered[cooling], errors='coerce').fillna(0)
+
+                dhw = find_column(df_raw_filtered, ['dhw_demand', 'dhw demand'])
+                if dhw:
+                    cols_to_aggregate['dhw_demand'] = pd.to_numeric(df_raw_filtered[dhw], errors='coerce').fillna(0)
+
+                # Energy from devices
+                heat_dev = find_column(df_raw_filtered, ['energy from heating device'])
+                if heat_dev:
+                    cols_to_aggregate['energy_from_heating_device'] = pd.to_numeric(df_raw_filtered[heat_dev], errors='coerce').fillna(0)
+
+                heat_fuel = find_column(df_raw_filtered, ['energy from heating fuel device'])
+                if heat_fuel:
+                    cols_to_aggregate['energy_from_heating_fuel_device'] = pd.to_numeric(df_raw_filtered[heat_fuel], errors='coerce').fillna(0)
+
+                # Fuel consumption
+                fuel_cons = find_column(df_raw_filtered, ['net fuel consumption', 'net_fuel_consumption'])
+                if fuel_cons:
+                    cols_to_aggregate['fuel_consumption'] = pd.to_numeric(df_raw_filtered[fuel_cons], errors='coerce').fillna(0)
+
+                # Cost and emissions
+                elec_cost = find_column(df_raw_filtered, ['net electricity cost', 'net_electricity_cost'])
+                if elec_cost:
+                    cols_to_aggregate['electricity_cost'] = pd.to_numeric(df_raw_filtered[elec_cost], errors='coerce').fillna(0)
+
+                elec_emis = find_column(df_raw_filtered, ['net electricity emission', 'net_electricity_emission'])
+                if elec_emis:
+                    cols_to_aggregate['electricity_emissions'] = pd.to_numeric(df_raw_filtered[elec_emis], errors='coerce').fillna(0)
+
+                fuel_cost = find_column(df_raw_filtered, ['net fuel cost', 'net_fuel_cost'])
+                if fuel_cost:
+                    cols_to_aggregate['fuel_cost'] = pd.to_numeric(df_raw_filtered[fuel_cost], errors='coerce').fillna(0)
+
+                fuel_emis = find_column(df_raw_filtered, ['net fuel emission', 'net_fuel_emission'])
+                if fuel_emis:
+                    cols_to_aggregate['fuel_emissions'] = pd.to_numeric(df_raw_filtered[fuel_emis], errors='coerce').fillna(0)
+
+                # Pricing data (not aggregated, same for all buildings)
+                elec_price = find_column(df_raw_filtered, ['electricity_pricing', 'electricity price', 'electricity_price', 'pricing'])
+                if elec_price:
+                    cols_to_aggregate['electricity_price'] = pd.to_numeric(df_raw_filtered[elec_price], errors='coerce').fillna(0)
+
+                fuel_price = find_column(df_raw_filtered, ['fuel_pricing', 'fuel price', 'fuel_price', 'natural_gas_pricing'])
+                if fuel_price:
+                    cols_to_aggregate['fuel_price'] = pd.to_numeric(df_raw_filtered[fuel_price], errors='coerce').fillna(0)
+
+                # Carbon intensity data (not aggregated, same for all buildings)
+                carbon_int = find_column(df_raw_filtered, ['carbon_intensity', 'electricity carbon intensity', 'electricity_carbon_intensity'])
+                if carbon_int:
+                    cols_to_aggregate['electricity_carbon_intensity'] = pd.to_numeric(df_raw_filtered[carbon_int], errors='coerce').fillna(0)
+
+                fuel_carbon = find_column(df_raw_filtered, ['fuel carbon intensity', 'fuel_carbon_intensity', 'natural_gas_carbon_intensity'])
+                if fuel_carbon:
+                    cols_to_aggregate['fuel_carbon_intensity'] = pd.to_numeric(df_raw_filtered[fuel_carbon], errors='coerce').fillna(0)
+
+                # Detailed electricity consumption components
+                # Cooling electricity
+                cool_elec = find_column(df_raw_filtered, ['cooling electricity consumption', 'cooling_electricity_consumption'])
+                if cool_elec:
+                    cols_to_aggregate['cooling_electricity_consumption'] = pd.to_numeric(df_raw_filtered[cool_elec], errors='coerce').fillna(0)
+
+                # Heating electricity
+                heat_elec = find_column(df_raw_filtered, ['heating electricity consumption', 'heating_electricity_consumption'])
+                if heat_elec:
+                    cols_to_aggregate['heating_electricity_consumption'] = pd.to_numeric(df_raw_filtered[heat_elec], errors='coerce').fillna(0)
+
+                # DHW electricity
+                dhw_elec = find_column(df_raw_filtered, ['dhw electricity consumption', 'dhw_electricity_consumption'])
+                if dhw_elec:
+                    cols_to_aggregate['dhw_electricity_consumption'] = pd.to_numeric(df_raw_filtered[dhw_elec], errors='coerce').fillna(0)
+
+                # DHW storage electricity consumption
+                dhw_stor_elec = find_column(df_raw_filtered, ['dhw storage electricity consumption', 'dhw_storage_electricity_consumption'])
+                if dhw_stor_elec:
+                    cols_to_aggregate['dhw_storage_electricity_consumption'] = pd.to_numeric(df_raw_filtered[dhw_stor_elec], errors='coerce').fillna(0)
+
+                # Non-shiftable load
+                non_shift = find_column(df_raw_filtered, ['non shiftable load', 'non_shiftable_load', 'energy to non shiftable load'])
+                if non_shift:
+                    cols_to_aggregate['non_shiftable_load'] = pd.to_numeric(df_raw_filtered[non_shift], errors='coerce').fillna(0)
+
+                # Electrical storage
+                el_stor = find_column(df_raw_filtered, ['electrical storage electricity consumption', 'energy to electrical storage'])
+                if el_stor:
+                    cols_to_aggregate['electrical_storage_electricity_consumption'] = pd.to_numeric(df_raw_filtered[el_stor], errors='coerce').fillna(0)
+
+                # Alternative: energy from/to storage
+                from_stor = find_column(df_raw_filtered, ['energy from electrical storage'])
+                if from_stor:
+                    cols_to_aggregate['energy_from_electrical_storage'] = pd.to_numeric(df_raw_filtered[from_stor], errors='coerce').fillna(0)
+
+                to_stor = find_column(df_raw_filtered, ['energy to electrical storage'])
+                if to_stor:
+                    cols_to_aggregate['energy_to_electrical_storage'] = pd.to_numeric(df_raw_filtered[to_stor], errors='coerce').fillna(0)
+
+                # Create dataframe from extracted columns
+                if cols_to_aggregate:
+                    df_building = pd.DataFrame(cols_to_aggregate, index=df_raw_filtered.index)
+
+                    # Aggregate
+                    if aggregated_data is None:
+                        aggregated_data = df_building
+                    else:
+                        # For price and carbon intensity, use the first building's values (don't sum)
+                        # For energy/cost/emissions, sum across buildings
+                        price_carbon_cols = ['electricity_pricing', 'fuel_pricing', 'carbon_intensity', 'fuel_carbon_intensity']
+
+                        for col in df_building.columns:
+                            if col in price_carbon_cols:
+                                # Don't aggregate these - keep first building's values
+                                if col not in aggregated_data.columns:
+                                    aggregated_data[col] = df_building[col]
+                            else:
+                                # Sum these (energy, cost, emissions)
+                                if col in aggregated_data.columns:
+                                    aggregated_data[col] = aggregated_data[col].add(df_building[col], fill_value=0)
+                                else:
+                                    aggregated_data[col] = df_building[col]
+
+        if aggregated_data is not None and not aggregated_data.empty:
+            district_data[full_config_name] = aggregated_data
+            print(f"[DEBUG] Aggregated data shape: {aggregated_data.shape}")
+
+    if not district_data:
+        return html.Div([
+            html.Div("📊", style={'fontSize': '48px', 'marginBottom': '20px'}),
+            html.H4("No district data available", style={'color': '#e74c3c'}),
+            html.P("Could not load data for the selected configurations and buildings.",
+                   style={'color': '#95a5a6'})
+        ], style={'textAlign': 'center', 'padding': '80px'})
+
+    # Create visualizations
+    graphs = []
+
+    # 1. ELECTRICAL CONSUMPTION TIME SERIES
+    fig_elec = go.Figure()
+
+    for i, (config_name, data) in enumerate(district_data.items()):
+        if 'net_electricity_consumption' in data.columns:
+            color = COLORS[i % len(COLORS)]
+            fig_elec.add_trace(go.Scatter(
+                x=data.index,
+                y=data['net_electricity_consumption'],
+                name=config_name,
+                line=dict(color=color, width=2.5),
+                mode='lines'
+            ))
+
+    fig_elec.update_layout(
+        title=dict(
+            text=f"District Net Electrical Consumption - {len(selected_buildings)} Buildings",
+            font=dict(size=18, color='#2c3e50')
+        ),
+        xaxis_title="Time",
+        yaxis_title="Net Electricity (kWh)",
+        hovermode='x unified',
+        template='plotly_white',
+        height=400,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
+
+    graphs.append(html.Div([
+        html.H4("⚡ Electrical Consumption", style={'color': '#667eea', 'marginBottom': '15px'}),
+        dcc.Graph(figure=fig_elec, config={'displayModeBar': True, 'displaylogo': False})
+    ], style={'marginBottom': '30px'}))
+
+    # 2. HEATING DEMAND TIME SERIES
+    fig_heat = go.Figure()
+
+    for i, (config_name, data) in enumerate(district_data.items()):
+        if 'heating_demand' in data.columns:
+            color = COLORS[i % len(COLORS)]
+            fig_heat.add_trace(go.Scatter(
+                x=data.index,
+                y=data['heating_demand'],
+                name=config_name,
+                line=dict(color=color, width=2.5),
+                mode='lines',
+                fill='tozeroy',
+                fillcolor=color_to_rgba(color, 0.2)
+            ))
+
+    fig_heat.update_layout(
+        title=dict(
+            text=f"District Heating Demand - {len(selected_buildings)} Buildings",
+            font=dict(size=18, color='#2c3e50')
+        ),
+        xaxis_title="Time",
+        yaxis_title="Heating Demand (kWh)",
+        hovermode='x unified',
+        template='plotly_white',
+        height=400,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
+
+    graphs.append(html.Div([
+        html.H4("🔥 Heating Demand", style={'color': '#667eea', 'marginBottom': '15px'}),
+        dcc.Graph(figure=fig_heat, config={'displayModeBar': True, 'displaylogo': False})
+    ], style={'marginBottom': '30px'}))
+
+    # 3. COSTS STACKED AREA CHARTS (one per configuration with toggle button)
+    for i, (config_name, data) in enumerate(district_data.items()):
+        has_elec_cost = 'electricity_cost' in data.columns and data['electricity_cost'].sum() != 0
+        has_fuel_cost = 'fuel_cost' in data.columns and data['fuel_cost'].sum() != 0
+
+        if has_elec_cost or has_fuel_cost:
+            # Create two versions: all data and positive only
+            color = COLORS[i % len(COLORS)]
+
+            # Version 1: All data (including negative costs)
+            fig_costs_all = go.Figure()
+
+            if has_elec_cost:
+                fig_costs_all.add_trace(go.Scatter(
+                    x=data.index,
+                    y=data['electricity_cost'],
+                    name='Electricity Cost',
+                    fill='tozeroy',
+                    fillcolor='rgba(33, 150, 243, 0.6)',
+                    line=dict(color='blue', width=1),
+                    stackgroup='one'
+                ))
+
+            if has_fuel_cost:
+                fig_costs_all.add_trace(go.Scatter(
+                    x=data.index,
+                    y=data['fuel_cost'],
+                    name='Fuel Cost',
+                    fill='tonexty',
+                    fillcolor='rgba(244, 67, 54, 0.6)',
+                    line=dict(color='red', width=1),
+                    stackgroup='one'
+                ))
+
+            fig_costs_all.update_layout(
+                title=dict(
+                    text=f"District Energy Costs: {config_name} - All Values",
+                    font=dict(size=16, color='#2c3e50')
+                ),
+                xaxis_title="Time",
+                yaxis_title="Cost (€)",
+                hovermode='x unified',
+                template='plotly_white',
+                height=400,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                showlegend=True
+            )
+
+            # Version 2: Positive values only
+            fig_costs_pos = go.Figure()
+
+            if has_elec_cost:
+                elec_cost_pos = data['electricity_cost'].clip(lower=0)
+                fig_costs_pos.add_trace(go.Scatter(
+                    x=data.index,
+                    y=elec_cost_pos,
+                    name='Electricity Cost',
+                    fill='tozeroy',
+                    fillcolor='rgba(33, 150, 243, 0.6)',
+                    line=dict(color='blue', width=1),
+                    stackgroup='one'
+                ))
+
+            if has_fuel_cost:
+                fuel_cost_pos = data['fuel_cost'].clip(lower=0)
+                fig_costs_pos.add_trace(go.Scatter(
+                    x=data.index,
+                    y=fuel_cost_pos,
+                    name='Fuel Cost',
+                    fill='tonexty',
+                    fillcolor='rgba(244, 67, 54, 0.6)',
+                    line=dict(color='red', width=1),
+                    stackgroup='one'
+                ))
+
+            fig_costs_pos.update_layout(
+                title=dict(
+                    text=f"District Energy Costs: {config_name} - Positive Only",
+                    font=dict(size=16, color='#2c3e50')
+                ),
+                xaxis_title="Time",
+                yaxis_title="Cost (€)",
+                hovermode='x unified',
+                template='plotly_white',
+                height=400,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                showlegend=True
+            )
+
+            # Create a unique ID for this configuration's toggle
+            toggle_id = f'cost-toggle-{i}'
+            graph_id = f'cost-graph-{i}'
+
+            # Create the cost section with toggle buttons
+            cost_section = html.Div([
+                html.Div([
+                    html.H4("💰 Energy Costs", style={
+                        'color': '#667eea',
+                        'marginBottom': '15px',
+                        'display': 'inline-block',
+                        'marginRight': '20px'
+                    }),
+                    html.Div([
+                        html.Button('All Values',
+                                   id={'type': 'cost-btn-all', 'index': i},
+                                   n_clicks=0,
+                                   style={
+                                       'padding': '8px 16px',
+                                       'marginRight': '10px',
+                                       'backgroundColor': '#667eea',
+                                       'color': 'white',
+                                       'border': 'none',
+                                       'borderRadius': '5px',
+                                       'cursor': 'pointer',
+                                       'fontWeight': 'bold'
+                                   }),
+                        html.Button('Positive Only',
+                                   id={'type': 'cost-btn-pos', 'index': i},
+                                   n_clicks=0,
+                                   style={
+                                       'padding': '8px 16px',
+                                       'backgroundColor': '#e0e0e0',
+                                       'color': '#333',
+                                       'border': 'none',
+                                       'borderRadius': '5px',
+                                       'cursor': 'pointer'
+                                   })
+                    ], style={'display': 'inline-block'})
+                ], style={'marginBottom': '10px'}),
+
+                # Store to keep track of which view is active
+                dcc.Store(id={'type': 'cost-view-store', 'index': i}, data='all'),
+
+                # Graph that will be updated
+                dcc.Graph(
+                    id={'type': 'cost-graph', 'index': i},
+                    figure=fig_costs_all,
+                    config={'displayModeBar': True, 'displaylogo': False}
+                )
+            ], style={'marginBottom': '30px'})
+
+            graphs.append(cost_section)
+
+            # Note: The callback for toggling will be added at the end of the file
+
+    # 3b. DETAILED ELECTRICITY CONSUMPTION BREAKDOWN (for each configuration)
+    for i, (config_name, data) in enumerate(district_data.items()):
+        # Create detailed electricity consumption breakdown
+        # This should match net_electricity_consumption when properly stacked
+
+        fig_elec_breakdown = make_subplots(specs=[[{"secondary_y": False}]])
+
+        # Define all electricity consumption components
+        # Positive contributions (consumption)
+        consumption_components = []
+
+        # 1. Solar generation (negative - reduces net consumption)
+        if 'solar_generation' in data.columns:
+            consumption_components.append({
+                'name': 'Solar Generation',
+                'data': data['solar_generation'],  # Negative to show as reduction
+                'color': 'rgba(255, 215, 0, 0.7)',  # Gold
+                'line_color': 'gold'
+            })
+
+
+        # 2. Positive storage consumption (charging)
+        if 'electrical_storage_electricity_consumption' in data.columns:
+            consumption_components.append({
+                'name': 'Storage',
+                'data': data['electrical_storage_electricity_consumption'],
+                'color': 'rgba(144, 238, 144, 0.7)',  # Light green
+                'line_color': 'lightgreen'
+            })
+
+        # 3. Cooling electricity consumption
+        if 'cooling_electricity_consumption' in data.columns:
+            consumption_components.append({
+                'name': 'Cooling',
+                'data': data['cooling_electricity_consumption'],
+                'color': 'rgba(135, 206, 250, 0.7)',  # Light blue
+                'line_color': 'skyblue'
+            })
+
+        # 4. Heating electricity consumption
+        if 'heating_electricity_consumption' in data.columns:
+            consumption_components.append({
+                'name': 'Heating',
+                'data': data['heating_electricity_consumption'],
+                'color': 'rgba(255, 140, 0, 0.7)',  # Dark orange
+                'line_color': 'darkorange'
+            })
+
+        # 5. DHW electricity consumption
+        if 'dhw_electricity_consumption' in data.columns:
+            consumption_components.append({
+                'name': 'DHW',
+                'data': data['dhw_electricity_consumption'],
+                'color': 'rgba(255, 192, 203, 0.7)',  # Pink
+                'line_color': 'pink'
+            })
+
+        # 6. DHW storage electricity consumption
+        if 'dhw_storage_electricity_consumption' in data.columns:
+            consumption_components.append({
+                'name': 'DHW Storage Consumption',
+                'data': data['dhw_storage_electricity_consumption'],
+                'color': 'rgba(255, 105, 180, 0.7)',  # Hot pink
+                'line_color': 'hotpink'
+            })
+
+        # 7. Non-shiftable load
+        if 'non_shiftable_load' in data.columns:
+            consumption_components.append({
+                'name': 'Non-Shiftable Load',
+                'data': data['non_shiftable_load'],
+                'color': 'rgba(169, 169, 169, 0.7)',  # Gray
+                'line_color': 'gray'
+            })
+
+
+
+
+        # Add all components to the figure
+        has_components = len(consumption_components) > 0
+
+        if has_components:
+            # First add all positive consumption components (stacked)
+            for comp in consumption_components:
+                fig_elec_breakdown.add_trace(go.Scatter(
+                    x=data.index,
+                    y=comp['data'],
+                    name=comp['name'],
+                    fill='tonexty',
+                    fillcolor=comp['color'],
+                    line=dict(color=comp['line_color'], width=1),
+                    stackgroup='consumption',
+                    mode='lines'
+                ), secondary_y=False)
+
+            # Add net electricity consumption as a line for verification
+            if 'net_electricity_consumption' in data.columns:
+                fig_elec_breakdown.add_trace(go.Scatter(
+                    x=data.index,
+                    y=data['net_electricity_consumption'],
+                    name='Net Consumption (verify)',
+                    line=dict(color='black', width=2.5, dash='dot'),
+                    mode='lines'
+                ), secondary_y=False)
+
+            fig_elec_breakdown.update_layout(
+                title=dict(
+                    text=f"District Electricity Consumption Breakdown: {config_name}",
+                    font=dict(size=16, color='#2c3e50')
+                ),
+                xaxis_title="Time",
+                yaxis_title="Electricity (kWh)",
+                hovermode='x unified',
+                template='plotly_white',
+                height=500,
+                legend=dict(
+                    orientation="v",
+                    yanchor="top",
+                    y=1,
+                    xanchor="left",
+                    x=1.05,
+                    bgcolor='rgba(255,255,255,0.9)',
+                    bordercolor='#e0e0e0',
+                    borderwidth=1
+                ),
+                showlegend=True
+            )
+
+            # Add explanation note
+            breakdown_section = html.Div([
+                html.H4("⚡ Detailed Electricity Consumption Breakdown", style={
+                    'color': '#667eea',
+                    'marginBottom': '10px'
+                }),
+                html.P([
+                    html.Strong("Note: "),
+                    "The sum of all stacked areas should equal the net electricity consumption (black dotted line). ",
+                    "Positive areas = consumption, negative areas = generation/discharge."
+                ], style={
+                    'fontSize': '12px',
+                    'color': '#7f8c8d',
+                    'marginBottom': '10px',
+                    'fontStyle': 'italic'
+                }),
+                dcc.Graph(
+                    figure=fig_elec_breakdown,
+                    config={'displayModeBar': True, 'displaylogo': False}
+                )
+            ], style={'marginBottom': '30px'})
+
+            graphs.append(breakdown_section)
+
+    # 3c. ELECTRICITY CONSUMPTION COST BREAKDOWN (for each configuration)
+    for i, (config_name, data) in enumerate(district_data.items()):
+        # Create electricity cost breakdown as stacked area chart
+        # Cost = consumption * price for each component
+
+        # Check if we have pricing data
+        price_col = None
+        for col_name in ['electricity_pricing', 'electricity_price', 'pricing', 'price']:
+            if col_name in data.columns:
+                price_col = col_name
+                break
+
+        if price_col is not None:
+            fig_cost_breakdown = make_subplots(specs=[[{"secondary_y": False}]])
+
+            # Define cost components (consumption * price)
+            cost_components = []
+
+            # 1. Cooling electricity cost
+            if 'cooling_electricity_consumption' in data.columns:
+                cost_components.append({
+                    'name': 'Cooling Cost',
+                    'data': data['cooling_electricity_consumption'] * data[price_col],
+                    'color': 'rgba(135, 206, 250, 0.7)',
+                    'line_color': 'skyblue'
+                })
+
+            # 2. Heating electricity cost
+            if 'heating_electricity_consumption' in data.columns:
+                cost_components.append({
+                    'name': 'Heating Cost',
+                    'data': data['heating_electricity_consumption'] * data[price_col],
+                    'color': 'rgba(255, 140, 0, 0.7)',
+                    'line_color': 'darkorange'
+                })
+
+            # 3. DHW electricity cost
+            if 'dhw_electricity_consumption' in data.columns:
+                cost_components.append({
+                    'name': 'DHW Cost',
+                    'data': data['dhw_electricity_consumption'] * data[price_col],
+                    'color': 'rgba(255, 192, 203, 0.7)',
+                    'line_color': 'pink'
+                })
+
+            # 4. Non-shiftable load cost
+            if 'non_shiftable_load' in data.columns:
+                cost_components.append({
+                    'name': 'Non-Shiftable Load Cost',
+                    'data': data['non_shiftable_load'] * data[price_col],
+                    'color': 'rgba(169, 169, 169, 0.7)',
+                    'line_color': 'gray'
+                })
+
+            # 5. Storage charging cost
+            if 'electrical_storage_electricity_consumption' in data.columns:
+                cost_components.append({
+                    'name': 'Storage Cost',
+                    'data': data['electrical_storage_electricity_consumption'] * data[price_col],
+                    'color': 'rgba(144, 238, 144, 0.7)',
+                    'line_color': 'lightgreen'
+                })
+
+            # 6. DHW storage charging cost
+            if 'dhw_storage_electricity_consumption' in data.columns:
+                cost_components.append({
+                    'name': 'DHW Storage Cost',
+                    'data': data['dhw_storage_electricity_consumption'] * data[price_col],
+                    'color': 'rgba(221, 160, 221, 0.7)',
+                    'line_color': 'plum'
+                })
+
+            # 7. Solar generation savings (negative cost)
+            if 'solar_generation' in data.columns:
+                cost_components.append({
+                    'name': 'Solar Savings',
+                    'data': data['solar_generation'] * data[price_col],
+                    'color': 'rgba(255, 215, 0, 0.7)',
+                    'line_color': 'gold'
+                })
+
+            has_cost_components = len(cost_components) > 0
+
+            if has_cost_components:
+                # Add positive cost components (stacked)
+                for comp in cost_components:
+                    fig_cost_breakdown.add_trace(go.Scatter(
+                        x=data.index,
+                        y=comp['data'],
+                        name=comp['name'],
+                        fill='tonexty',
+                        fillcolor=comp['color'],
+                        line=dict(color=comp['line_color'], width=1),
+                        stackgroup='costs',
+                        mode='lines'
+                    ), secondary_y=False)
+
+
+                # Add net electricity cost as verification line
+                net_cost_col = None
+                for col_name in ['net electricity cost', 'net_electricity_cost', 'net electricity consumption cost']:
+                    if col_name in data.columns:
+                        net_cost_col = col_name
+                        break
+
+                if net_cost_col:
+                    fig_cost_breakdown.add_trace(go.Scatter(
+                        x=data.index,
+                        y=data[net_cost_col],
+                        name='Net Cost (verify)',
+                        line=dict(color='black', width=2.5, dash='dot'),
+                        mode='lines'
+                    ), secondary_y=False)
+
+                fig_cost_breakdown.update_layout(
+                    title=dict(
+                        text=f"District Electricity Cost Breakdown: {config_name}",
+                        font=dict(size=16, color='#2c3e50')
+                    ),
+                    xaxis_title="Time",
+                    yaxis_title="Cost (€)",
+                    hovermode='x unified',
+                    template='plotly_white',
+                    height=500,
+                    legend=dict(
+                        orientation="v",
+                        yanchor="top",
+                        y=1,
+                        xanchor="left",
+                        x=1.05,
+                        bgcolor='rgba(255,255,255,0.9)',
+                        bordercolor='#e0e0e0',
+                        borderwidth=1
+                    ),
+                    showlegend=True
+                )
+
+                cost_breakdown_section = html.Div([
+                    html.H4("💰 Detailed Electricity Cost Breakdown", style={
+                        'color': '#667eea',
+                        'marginBottom': '10px'
+                    }),
+                    html.P([
+                        html.Strong("Note: "),
+                        "Each component's cost = consumption × electricity price. ",
+                        "The sum of all stacked areas should equal the net electricity cost (black dotted line). ",
+                        "Positive areas = costs, negative areas = savings from generation/discharge."
+                    ], style={
+                        'fontSize': '12px',
+                        'color': '#7f8c8d',
+                        'marginBottom': '10px',
+                        'fontStyle': 'italic'
+                    }),
+                    dcc.Graph(
+                        figure=fig_cost_breakdown,
+                        config={'displayModeBar': True, 'displaylogo': False}
+                    )
+                ], style={'marginBottom': '30px'})
+
+                graphs.append(cost_breakdown_section)
+
+    # 4. ENHANCED ENERGY MIX WITH PRICES AND EMISSIONS (for each configuration)
+    for i, (config_name, data) in enumerate(district_data.items()):
+        has_elec = 'net_electricity_consumption' in data.columns
+        has_fuel = 'fuel_consumption' in data.columns
+
+        if has_elec or has_fuel:
+            # Create figure with multiple y-axes
+
+            fig_mix = make_subplots(
+                specs=[[{"secondary_y": True}]]
+            )
+
+            # PRIMARY AXIS: Energy consumption (stacked areas)
+
+            # Electricity consumption
+            if has_elec:
+                fig_mix.add_trace(go.Scatter(
+                    x=data.index,
+                    y=data['net_electricity_consumption'],
+                    name='Electricity Consumption',
+                    fill='tonexty',
+                    fillcolor='rgba(33, 150, 243, 0.5)',
+                    line=dict(color='blue', width=1),
+                    stackgroup='two',
+                    yaxis='y'
+                ), secondary_y=False)
+
+            # Fuel consumption
+            if has_fuel:
+                fig_mix.add_trace(go.Scatter(
+                    x=data.index,
+                    y=data['fuel_consumption'],
+                    name='Fuel Consumption',
+                    fill='tonexty',
+                    fillcolor='rgba(244, 67, 54, 0.5)',
+                    line=dict(color='red', width=1),
+                    stackgroup='two',
+                    yaxis='y'
+                ), secondary_y=False)
+
+            # SECONDARY AXIS: Prices (€/kWh) - as line plots
+            # Try to find price columns
+            elec_price_col = None
+            fuel_price_col = None
+
+            # Search for electricity price
+            for col_name in ['electricity_price', 'electricity price', 'pricing', 'price']:
+                if col_name in data.columns:
+                    elec_price_col = col_name
+                    break
+
+            # Search for fuel price
+            for col_name in ['fuel_pricing', 'fuel_price', 'fuel price', 'natural_gas_pricing']:
+                if col_name in data.columns:
+                    fuel_price_col = col_name
+                    break
+
+            # Add electricity price line
+            if elec_price_col:
+                fig_mix.add_trace(go.Scatter(
+                    x=data.index,
+                    y=data[elec_price_col],
+                    name='Electricity Price',
+                    line=dict(color='darkblue', width=2, dash='dot'),
+                    mode='lines',
+                    yaxis='y2'
+                ), secondary_y=True)
+
+            # Add fuel price line
+            if fuel_price_col:
+                fig_mix.add_trace(go.Scatter(
+                    x=data.index,
+                    y=data[fuel_price_col],
+                    name='Fuel Price',
+                    line=dict(color='darkred', width=2, dash='dot'),
+                    mode='lines',
+                    yaxis='y2'
+                ), secondary_y=True)
+
+            # THIRD AXIS: Carbon Intensity (kgCO₂/kWh) - will be overlaid
+            # Search for carbon intensity columns
+            elec_carbon_col = None
+            fuel_carbon_col = None
+
+            for col_name in ['electricity_carbon_intensity', 'electricity carbon intensity', 'carbon_emission_factor']:
+                if col_name in data.columns:
+                    elec_carbon_col = col_name
+                    break
+
+            for col_name in ['fuel_carbon_intensity', 'fuel carbon intensity', 'natural_gas_carbon_intensity']:
+                if col_name in data.columns:
+                    fuel_carbon_col = col_name
+                    break
+
+            # Add carbon intensity lines (we'll use a workaround to create a third axis)
+            # Since plotly doesn't natively support 3 y-axes easily in this mode,
+            # we'll add them to secondary axis but with different styling
+            if elec_carbon_col:
+                fig_mix.add_trace(go.Scatter(
+                    x=data.index,
+                    y=data[elec_carbon_col] * 100,  # Scale up for visibility
+                    name='Elec. Carbon Int. (×100)',
+                    line=dict(color='cyan', width=2, dash='dashdot'),
+                    mode='lines',
+                    yaxis='y2'
+                ), secondary_y=True)
+
+            if fuel_carbon_col:
+                fig_mix.add_trace(go.Scatter(
+                    x=data.index,
+                    y=data[fuel_carbon_col] * 100,  # Scale up for visibility
+                    name='Fuel Carbon Int. (×100)',
+                    line=dict(color='magenta', width=2, dash='dashdot'),
+                    mode='lines',
+                    yaxis='y2'
+                ), secondary_y=True)
+
+            # Update axes labels
+            fig_mix.update_xaxes(title_text="Time")
+            fig_mix.update_yaxes(title_text="Energy (kWh)", secondary_y=False)
+            fig_mix.update_yaxes(title_text="Price (€/kWh) / Carbon Int. (kgCO₂/kWh ×100)", secondary_y=True)
+
+            fig_mix.update_layout(
+                title=dict(
+                    text=f"District Energy Mix with Pricing & Emissions: {config_name}",
+                    font=dict(size=16, color='#2c3e50')
+                ),
+                hovermode='x unified',
+                template='plotly_white',
+                height=500,
+                legend=dict(
+                    orientation="v",
+                    yanchor="top",
+                    y=1,
+                    xanchor="left",
+                    x=1.05,
+                    bgcolor='rgba(255,255,255,0.9)',
+                    bordercolor='#e0e0e0',
+                    borderwidth=1
+                )
+            )
+
+            graphs.append(html.Div([
+                dcc.Graph(figure=fig_mix, config={'displayModeBar': True, 'displaylogo': False})
+            ], style={'marginBottom': '30px'}))
+
+    # 4. CUMULATIVE METRICS TABLE
+    summary_data = []
+    for config_name, data in district_data.items():
+        row = {'Configuration': config_name}
+
+        # Cumulative values
+        if 'net_electricity_consumption' in data.columns:
+            row['Total Electricity (kWh)'] = data['net_electricity_consumption'].sum()
+
+        if 'positive_electricity_consumption' in data.columns:
+            row['Electricity Import (kWh)'] = data['positive_electricity_consumption'].sum()
+
+        if 'solar_generation' in data.columns:
+            row['Solar Generation (kWh)'] = data['solar_generation'].sum()
+
+        if 'heating_demand' in data.columns:
+            row['Heating Demand (kWh)'] = data['heating_demand'].sum()
+
+        if 'cooling_demand' in data.columns:
+            row['Cooling Demand (kWh)'] = data['cooling_demand'].sum()
+
+        if 'dhw_demand' in data.columns:
+            row['DHW Demand (kWh)'] = data['dhw_demand'].sum()
+
+        if 'fuel_consumption' in data.columns:
+            row['Fuel Consumption (kWh)'] = data['fuel_consumption'].sum()
+
+        if 'electricity_cost' in data.columns:
+            row['Electricity Cost ($)'] = data['electricity_cost'].sum()
+
+        if 'fuel_cost' in data.columns:
+            row['Fuel Cost ($)'] = data['fuel_cost'].sum()
+
+        if 'electricity_emissions' in data.columns:
+            row['Electricity Emissions (kg CO₂)'] = data['electricity_emissions'].sum()
+
+        if 'fuel_emissions' in data.columns:
+            row['Fuel Emissions (kg CO₂)'] = data['fuel_emissions'].sum()
+
+        # Peak values
+        if 'net_electricity_consumption' in data.columns:
+            row['Peak Electricity (kW)'] = data['net_electricity_consumption'].max()
+
+        if 'heating_demand' in data.columns:
+            row['Peak Heating (kW)'] = data['heating_demand'].max()
+
+        summary_data.append(row)
+
+    summary_df = pd.DataFrame(summary_data)
+
+    # Create summary table
+    if not summary_df.empty:
+        table = html.Div([
+            html.H3([
+                html.Span("📋", style={'marginRight': '10px'}),
+                "District-Level Cumulative Metrics"
+            ], style={
+                'marginTop': 30,
+                'marginBottom': 20,
+                'color': '#2c3e50',
+                'borderBottom': '3px solid #667eea',
+                'paddingBottom': '10px'
+            }),
+            html.Div([
+                html.Table([
+                    html.Thead(
+                        html.Tr([html.Th(col, style={
+                            'backgroundColor': '#667eea',
+                            'color': 'white',
+                            'padding': '12px',
+                            'textAlign': 'left' if col == 'Configuration' else 'center',
+                            'fontSize': '13px',
+                            'fontWeight': 'bold'
+                        }) for col in summary_df.columns])
+                    ),
+                    html.Tbody([
+                        html.Tr([
+                            html.Td(
+                                f"{val:,.2f}" if isinstance(val, (int, float)) and col != 'Configuration' else val,
+                                style={
+                                    'padding': '12px',
+                                    'borderBottom': '1px solid #e0e0e0',
+                                    'textAlign': 'left' if col == 'Configuration' else 'center',
+                                    'fontWeight': '600' if col == 'Configuration' else 'normal',
+                                    'fontSize': '12px',
+                                    'fontFamily': 'monospace' if col != 'Configuration' else 'inherit'
+                                }
+                            )
+                            for col, val in zip(summary_df.columns, row)
+                        ], style={
+                            'backgroundColor': '#f8f9fa' if idx % 2 == 0 else 'white'
+                        })
+                        for idx, row in enumerate(summary_df.values)
+                    ])
+                ], style={
+                    'width': '100%',
+                    'borderCollapse': 'collapse',
+                    'boxShadow': '0 2px 8px rgba(0,0,0,0.1)',
+                    'borderRadius': '8px',
+                    'overflow': 'hidden'
+                }),
+            ], style={'overflowX': 'auto', 'marginTop': '20px'})
+        ], style={
+            'marginTop': '30px',
+            'padding': '25px',
+            'backgroundColor': 'white',
+            'borderRadius': '10px',
+            'boxShadow': '0 2px 8px rgba(0,0,0,0.1)'
+        })
+
+        graphs.append(table)
+
+    # 5. KEY METRICS CARDS
+    if len(district_data) > 0:
+        first_config_data = list(district_data.values())[0]
+
+        metrics_cards = []
+
+        # Total buildings
+        metrics_cards.append(html.Div([
+            html.H3(f"{len(selected_buildings)}", style={'fontSize': '36px', 'margin': '0', 'color': '#667eea'}),
+            html.P("Buildings", style={'margin': '5px 0 0 0', 'color': '#7f8c8d', 'fontSize': '14px'})
+        ], style={
+            'textAlign': 'center',
+            'padding': '20px',
+            'backgroundColor': '#f8f9fa',
+            'borderRadius': '10px',
+            'flex': '1',
+            'minWidth': '150px'
+        }))
+
+        # Total electricity
+        if 'net_electricity_consumption' in first_config_data.columns:
+            total_elec = first_config_data['net_electricity_consumption'].sum()
+            metrics_cards.append(html.Div([
+                html.H3(f"{total_elec:,.0f}", style={'fontSize': '36px', 'margin': '0', 'color': '#667eea'}),
+                html.P("Total Electricity (kWh)", style={'margin': '5px 0 0 0', 'color': '#7f8c8d', 'fontSize': '14px'})
+            ], style={
+                'textAlign': 'center',
+                'padding': '20px',
+                'backgroundColor': '#f8f9fa',
+                'borderRadius': '10px',
+                'flex': '1',
+                'minWidth': '150px'
+            }))
+
+        # Total heating demand
+        if 'heating_demand' in first_config_data.columns:
+            total_heat = first_config_data['heating_demand'].sum()
+            metrics_cards.append(html.Div([
+                html.H3(f"{total_heat:,.0f}", style={'fontSize': '36px', 'margin': '0', 'color': '#667eea'}),
+                html.P("Total Heating (kWh)", style={'margin': '5px 0 0 0', 'color': '#7f8c8d', 'fontSize': '14px'})
+            ], style={
+                'textAlign': 'center',
+                'padding': '20px',
+                'backgroundColor': '#f8f9fa',
+                'borderRadius': '10px',
+                'flex': '1',
+                'minWidth': '150px'
+            }))
+
+        # Solar generation
+        if 'solar_generation' in first_config_data.columns:
+            total_solar = first_config_data['solar_generation'].sum()
+            metrics_cards.append(html.Div([
+                html.H3(f"{total_solar:,.0f}", style={'fontSize': '36px', 'margin': '0', 'color': '#667eea'}),
+                html.P("Solar Generation (kWh)", style={'margin': '5px 0 0 0', 'color': '#7f8c8d', 'fontSize': '14px'})
+            ], style={
+                'textAlign': 'center',
+                'padding': '20px',
+                'backgroundColor': '#f8f9fa',
+                'borderRadius': '10px',
+                'flex': '1',
+                'minWidth': '150px'
+            }))
+
+        metrics_row = html.Div(
+            metrics_cards,
+            style={
+                'display': 'flex',
+                'gap': '20px',
+                'flexWrap': 'wrap',
+                'marginBottom': '30px'
+            }
+        )
+
+        graphs.insert(0, metrics_row)
+
+    # Interpretation guide
+    guide = html.Div([
+        html.H4("📖 Interpretation Guide", style={'marginBottom': '15px', 'color': '#2c3e50'}),
+        html.Ul([
+            html.Li([
+                html.Strong("District Aggregation: "),
+                f"All metrics are aggregated across {len(selected_buildings)} selected buildings to show total district performance."
+            ]),
+            html.Li([
+                html.Strong("Electrical Consumption: "),
+                "Shows net electricity consumption (positive = import from grid, negative = export to grid)."
+            ]),
+            html.Li([
+                html.Strong("Heating Demand: "),
+                "Total heating energy required by all buildings in the district."
+            ]),
+            html.Li([
+                html.Strong("Energy Costs (Stacked Areas): "),
+                "Stacked area chart showing electricity costs (blue) and fuel costs (red). Toggle between 'All Values' (including revenue from export) and 'Positive Only' (expenses only)."
+            ]),
+            html.Li([
+                html.Strong("Electricity Consumption Breakdown: "),
+                "Detailed breakdown showing all electricity consumption components: cooling, heating, DHW, non-shiftable loads, and storage charging (positive areas). "
+                "Solar generation and storage discharge appear as negative areas. The black dotted line shows net consumption for verification - the sum of all areas should match it."
+            ]),
+            html.Li([
+                html.Strong("Enhanced Energy Mix: "),
+                "Stacked areas show energy consumption (kWh). Dotted lines on secondary axis show real-time pricing (€/kWh). Dash-dot lines show carbon intensity (kgCO₂/kWh, scaled ×100 for visibility)."
+            ]),
+            html.Li([
+                html.Strong("Price & Emissions Overlay: "),
+                "Blue/red dotted lines = electricity/fuel prices. Cyan/magenta dash-dot lines = carbon intensity. Use this to understand when consuming energy has higher cost or environmental impact."
+            ]),
+            html.Li([
+                html.Strong("Energy Balance Verification: "),
+                "In the electricity breakdown, verify that: Cooling + Heating + DHW + Non-Shiftable + Storage Charging - Solar - Storage Discharge = Net Consumption."
+            ]),
+            html.Li([
+                html.Strong("Cumulative Metrics: "),
+                "Table shows total energy consumption, costs, and emissions for the selected time period."
+            ]),
+            html.Li([
+                html.Strong("Configuration Comparison: "),
+                "Different lines/colors represent different algorithm configurations for comparison."
+            ]),
+        ], style={'lineHeight': '1.8', 'color': '#34495e'})
+    ], style={
+        'backgroundColor': '#f8f9fa',
+        'padding': '25px',
+        'borderRadius': '10px',
+        'border': '2px solid #667eea',
+        'marginTop': 30
+    })
+
+    return html.Div([
+        html.Div([
+            html.H3([
+                html.Span("🏙️", style={'marginRight': '10px'}),
+                f"District Level Analysis - {len(selected_buildings)} Buildings"
             ], style={
                 'marginBottom': 20,
                 'color': '#2c3e50',
@@ -2615,8 +4033,512 @@ def render_heating_system_tab(dataset, selected_buildings, selected_configs, sea
 
 
 # ============================================================================
+# CALLBACK FOR COST TOGGLE BUTTONS
+# ============================================================================
+
+@app.callback(
+    Output({'type': 'cost-graph', 'index': dash.dependencies.MATCH}, 'figure'),
+    Output({'type': 'cost-btn-all', 'index': dash.dependencies.MATCH}, 'style'),
+    Output({'type': 'cost-btn-pos', 'index': dash.dependencies.MATCH}, 'style'),
+    Input({'type': 'cost-btn-all', 'index': dash.dependencies.MATCH}, 'n_clicks'),
+    Input({'type': 'cost-btn-pos', 'index': dash.dependencies.MATCH}, 'n_clicks'),
+    State('dataset-dropdown', 'value'),
+    State('building-checklist', 'value'),
+    State('season-dropdown', 'value'),
+    State('date-range', 'start_date'),
+    State('date-range', 'end_date'),
+    State({'type': 'algo-config-checklist', 'algorithm': dash.dependencies.ALL}, 'value'),
+    State('algorithms-store', 'data'),
+    State({'type': 'cost-graph', 'index': dash.dependencies.MATCH}, 'id')
+)
+def toggle_cost_view(n_clicks_all, n_clicks_pos, dataset, selected_buildings, season,
+                     start_date, end_date, all_config_selections, configs_data, graph_id):
+    """Toggle between all cost values and positive-only cost values."""
+
+    # Determine which button was clicked
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        button_id = 'cost-btn-all'
+    else:
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        button_id = eval(button_id)['type']  # Extract the type from the pattern-matching ID
+
+    # Button styles
+    active_style = {
+        'padding': '8px 16px',
+        'backgroundColor': '#667eea',
+        'color': 'white',
+        'border': 'none',
+        'borderRadius': '5px',
+        'cursor': 'pointer',
+        'fontWeight': 'bold'
+    }
+
+    inactive_style = {
+        'padding': '8px 16px',
+        'backgroundColor': '#e0e0e0',
+        'color': '#333',
+        'border': 'none',
+        'borderRadius': '5px',
+        'cursor': 'pointer'
+    }
+
+    # Determine which view to show
+    show_positive_only = button_id == 'cost-btn-pos'
+
+    # Get the configuration index from the graph_id
+    config_idx = graph_id['index']
+
+    # Collect selected configurations
+    selected_configs = []
+    if all_config_selections:
+        for selections in all_config_selections:
+            if selections:
+                selected_configs.extend(selections)
+
+    if not selected_configs and configs_data:
+        selected_configs = list(configs_data.keys())[:3]
+
+    # Check if we have enough data
+    if not all([dataset, selected_buildings, selected_configs, configs_data]) or config_idx >= len(selected_configs):
+        # Return empty figure with default styles
+        empty_fig = go.Figure()
+        empty_fig.update_layout(
+            title="No data available",
+            template='plotly_white',
+            height=400
+        )
+        return empty_fig, active_style if not show_positive_only else inactive_style, inactive_style if not show_positive_only else active_style
+
+    # Get the configuration for this graph
+    config_key = selected_configs[config_idx]
+    config = configs_data[config_key]
+
+    algo_name_formatted = config['algorithm'].replace('_', ' ').title()
+    config_display_name = config['display_name']
+    full_config_name = f"{algo_name_formatted}: {config_display_name}"
+
+    # Aggregate data for this configuration
+    aggregated_data = None
+
+    for building_id in selected_buildings:
+        df = load_observation_data(dataset, config, building_id, season)
+
+        if df is None or df.empty:
+            continue
+
+        df_filtered = df.loc[start_date:end_date].copy()
+
+        if df_filtered.empty:
+            continue
+
+        # Load raw CSV
+        algo_path = Path(config['path']) if isinstance(config['path'], str) else config['path']
+        obs_file = (DATA_DIR / dataset / "schema.json" / "obs" /
+                   algo_path / f"obs_building_{building_id}.csv")
+
+        if obs_file.exists():
+            df_raw = pd.read_csv(obs_file)
+            start_date_dt = SEASONS.get(season, SEASONS["winter"])
+            df_raw.index = pd.date_range(start=start_date_dt, periods=len(df_raw), freq="h")
+            df_raw_filtered = df_raw.loc[start_date:end_date]
+
+            cols_to_aggregate = {}
+
+            # Cost data
+            elec_cost = find_column(df_raw_filtered, ['net electricity cost', 'net_electricity_cost'])
+            if elec_cost:
+                cols_to_aggregate['electricity_cost'] = pd.to_numeric(df_raw_filtered[elec_cost], errors='coerce').fillna(0)
+
+            fuel_cost = find_column(df_raw_filtered, ['net fuel cost', 'net_fuel_cost'])
+            if fuel_cost:
+                cols_to_aggregate['fuel_cost'] = pd.to_numeric(df_raw_filtered[fuel_cost], errors='coerce').fillna(0)
+
+            if cols_to_aggregate:
+                df_building = pd.DataFrame(cols_to_aggregate, index=df_raw_filtered.index)
+
+                if aggregated_data is None:
+                    aggregated_data = df_building
+                else:
+                    for col in df_building.columns:
+                        if col in aggregated_data.columns:
+                            aggregated_data[col] = aggregated_data[col].add(df_building[col], fill_value=0)
+                        else:
+                            aggregated_data[col] = df_building[col]
+
+    # Create the figure
+    fig = go.Figure()
+
+    if aggregated_data is not None and not aggregated_data.empty:
+        has_elec_cost = 'electricity_cost' in aggregated_data.columns
+        has_fuel_cost = 'fuel_cost' in aggregated_data.columns
+
+        if show_positive_only:
+            # Positive values only
+            if has_elec_cost:
+                elec_cost_data = aggregated_data['electricity_cost'].clip(lower=0)
+                fig.add_trace(go.Scatter(
+                    x=aggregated_data.index,
+                    y=elec_cost_data,
+                    name='Electricity Cost',
+                    fill='tozeroy',
+                    fillcolor='rgba(33, 150, 243, 0.6)',
+                    line=dict(color='blue', width=1),
+                    stackgroup='one'
+                ))
+
+            if has_fuel_cost:
+                fuel_cost_data = aggregated_data['fuel_cost'].clip(lower=0)
+                fig.add_trace(go.Scatter(
+                    x=aggregated_data.index,
+                    y=fuel_cost_data,
+                    name='Fuel Cost',
+                    fill='tonexty',
+                    fillcolor='rgba(244, 67, 54, 0.6)',
+                    line=dict(color='red', width=1),
+                    stackgroup='one'
+                ))
+
+            title_suffix = "Positive Only"
+        else:
+            # All values
+            if has_elec_cost:
+                fig.add_trace(go.Scatter(
+                    x=aggregated_data.index,
+                    y=aggregated_data['electricity_cost'],
+                    name='Electricity Cost',
+                    fill='tozeroy',
+                    fillcolor='rgba(33, 150, 243, 0.6)',
+                    line=dict(color='blue', width=1),
+                    stackgroup='one'
+                ))
+
+            if has_fuel_cost:
+                fig.add_trace(go.Scatter(
+                    x=aggregated_data.index,
+                    y=aggregated_data['fuel_cost'],
+                    name='Fuel Cost',
+                    fill='tonexty',
+                    fillcolor='rgba(244, 67, 54, 0.6)',
+                    line=dict(color='red', width=1),
+                    stackgroup='one'
+                ))
+
+            title_suffix = "All Values"
+
+        fig.update_layout(
+            title=dict(
+                text=f"District Energy Costs: {full_config_name} - {title_suffix}",
+                font=dict(size=16, color='#2c3e50')
+            ),
+            xaxis_title="Time",
+            yaxis_title="Cost (€)",
+            hovermode='x unified',
+            template='plotly_white',
+            height=400,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            showlegend=True
+        )
+    else:
+        fig.update_layout(
+            title="No cost data available",
+            template='plotly_white',
+            height=400
+        )
+
+    # Return figure and button styles
+    if show_positive_only:
+        return fig, inactive_style, active_style
+    else:
+        return fig, active_style, inactive_style
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
+
+# ============================================================================
+# CALLBACKS FOR BEST CONFIGURATION FINDER
+# ============================================================================
+
+@app.callback(
+    Output('weight-sum-indicator', 'children'),
+    Input('weight-comfort', 'value'),
+    Input('weight-cost', 'value'),
+    Input('weight-emissions', 'value')
+)
+def update_weight_sum_indicator(w_comfort, w_cost, w_emissions):
+    """Display the sum of weights and warn if not equal to 1."""
+    total = w_comfort + w_cost + w_emissions
+
+    if abs(total - 1.0) < 0.01:
+        return html.Div([
+            html.Span("✅ ", style={'marginRight': '5px'}),
+            f"Weights sum: {total:.2f} (Normalized)"
+        ], style={'color': '#27ae60', 'fontWeight': 'bold'})
+    else:
+        return html.Div([
+            html.Span("⚠️ ", style={'marginRight': '5px'}),
+            f"Weights sum: {total:.2f} (Will be automatically normalized)"
+        ], style={'color': '#f39c12', 'fontWeight': 'bold'})
+
+
+@app.callback(
+    Output('best-config-results', 'children'),
+    Input('calculate-best-config-btn', 'n_clicks'),
+    State('weight-comfort', 'value'),
+    State('weight-cost', 'value'),
+    State('weight-emissions', 'value'),
+    State('dataset-dropdown', 'value'),
+    State('building-checklist', 'value'),
+    State('season-dropdown', 'value'),
+    State('date-range', 'start_date'),
+    State('date-range', 'end_date'),
+    State({'type': 'algo-config-checklist', 'algorithm': dash.dependencies.ALL}, 'value'),
+    State('algorithms-store', 'data'),
+    prevent_initial_call=True
+)
+def calculate_best_configuration(n_clicks, w_comfort, w_cost, w_emissions,
+                                 dataset, selected_buildings, season,
+                                 start_date, end_date, all_config_selections, configs_data):
+    """Calculate and display the best configuration based on custom weights."""
+
+    if n_clicks == 0:
+        return html.Div()
+
+    # Normalize weights
+    total_weight = w_comfort + w_cost + w_emissions
+    if total_weight == 0:
+        total_weight = 1.0
+
+    weights = {
+        'comfort_violations': w_comfort / total_weight,
+        'cost': w_cost / total_weight,
+        'emissions': w_emissions / total_weight
+    }
+
+    # Collect selected configurations
+    selected_configs = []
+    if all_config_selections:
+        for selections in all_config_selections:
+            if selections:
+                selected_configs.extend(selections)
+
+    if not selected_configs:
+        return html.Div([
+            html.Div("⚠️", style={'fontSize': '36px', 'marginBottom': '10px'}),
+            html.P("Please select at least one configuration to compare.", style={'color': '#e74c3c'})
+        ], style={'textAlign': 'center', 'padding': '40px'})
+
+    # Calculate composite scores for each configuration
+    composite_scores = []
+    raw_metrics = {}
+
+    for config_key in selected_configs:
+        config = configs_data[config_key]
+        algo_name_formatted = config['algorithm'].replace('_', ' ').title()
+        config_display_name = config['display_name']
+        full_config_name = f"{algo_name_formatted}: {config_display_name}"
+
+        # Aggregate metrics across buildings
+        total_comfort_violations = 0
+        total_cost = 0
+        total_emissions = 0
+        total_energy = 0
+
+        for building_id in selected_buildings:
+            df_obs = load_observation_data(dataset, config, building_id, season)
+
+            if df_obs is not None and not df_obs.empty:
+                df_filtered = df_obs.loc[start_date:end_date]
+
+                if not df_filtered.empty:
+                    # Comfort violations
+                    if all(col in df_filtered.columns for col in ["tin", "comfort_low", "comfort_high"]):
+                        violations_above = (df_filtered["tin"] > df_filtered["comfort_high"]).sum()
+                        violations_below = (df_filtered["tin"] < df_filtered["comfort_low"]).sum()
+                        total_comfort_violations += violations_above + violations_below
+
+                    # Energy
+                    if "cooling demand" in df_filtered.columns:
+                        total_energy += df_filtered["cooling demand"].sum()
+                    if "heating demand" in df_filtered.columns:
+                        total_energy += df_filtered["heating demand"].sum()
+                    if "dhw demand" in df_filtered.columns:
+                        total_energy += df_filtered["dhw demand"].sum()
+
+                    # Cost
+                    col_elec_cost = find_column(df_filtered, ['net electricity consumption cost', 'net electricity cost'])
+                    if col_elec_cost:
+                        total_cost += pd.to_numeric(df_filtered[col_elec_cost], errors='coerce').fillna(0).clip(lower=0).sum()
+
+                    # Emissions
+                    col_elec_emis = find_column(df_filtered, ['net electricity consumption emission', 'net electricity emission'])
+                    if col_elec_emis:
+                        total_emissions += pd.to_numeric(df_filtered[col_elec_emis], errors='coerce').fillna(0).clip(lower=0).sum()
+
+        raw_metrics[full_config_name] = {
+            'comfort': total_comfort_violations,
+            'cost': total_cost,
+            'emissions': total_emissions,
+            'energy': total_energy
+        }
+
+    # Normalize metrics (min-max normalization)
+    all_comfort = [m['comfort'] for m in raw_metrics.values()]
+    all_costs = [m['cost'] for m in raw_metrics.values()]
+    all_emissions = [m['emissions'] for m in raw_metrics.values()]
+
+    min_comfort = min(all_comfort) if all_comfort else 0
+    max_comfort = max(all_comfort) if all_comfort else 1
+    min_cost = min(all_costs) if all_costs else 0
+    max_cost = max(all_costs) if all_costs else 1
+    min_emissions = min(all_emissions) if all_emissions else 0
+    max_emissions = max(all_emissions) if all_emissions else 1
+
+    for config_name, metrics in raw_metrics.items():
+        # Normalize to [0, 1]
+        norm_comfort = (metrics['comfort'] - min_comfort) / (max_comfort - min_comfort) if max_comfort > min_comfort else 0
+        norm_cost = (metrics['cost'] - min_cost) / (max_cost - min_cost) if max_cost > min_cost else 0
+        norm_emissions = (metrics['emissions'] - min_emissions) / (max_emissions - min_emissions) if max_emissions > min_emissions else 0
+
+        # Calculate composite score
+        composite = (
+            weights['comfort_violations'] * norm_comfort +
+            weights['cost'] * norm_cost +
+            weights['emissions'] * norm_emissions
+        )
+
+        composite_scores.append({
+            'Configuration': config_name,
+            'Composite Score': composite,
+            'Comfort Violations': metrics['comfort'],
+            'Total Cost': metrics['cost'],
+            'Total Emissions': metrics['emissions'],
+            'Total Energy': metrics['energy']
+        })
+
+    # Sort by composite score (lower is better)
+    composite_scores.sort(key=lambda x: x['Composite Score'])
+
+    # Create ranking table
+    table_rows = []
+    for rank, score_data in enumerate(composite_scores, start=1):
+        # Medal for top 3
+        medal = ""
+        row_style = {}
+        if rank == 1:
+            medal = "🥇 "
+            row_style = {'backgroundColor': '#fff9e6', 'fontWeight': 'bold'}
+        elif rank == 2:
+            medal = "🥈 "
+            row_style = {'backgroundColor': '#f0f0f0'}
+        elif rank == 3:
+            medal = "🥉 "
+            row_style = {'backgroundColor': '#f8f8f8'}
+
+        table_rows.append(html.Tr([
+            html.Td(f"{medal}{rank}", style={'padding': '12px', 'textAlign': 'center'}),
+            html.Td(score_data['Configuration'], style={'padding': '12px'}),
+            html.Td(f"{score_data['Composite Score']:.4f}", style={'padding': '12px', 'textAlign': 'center', 'fontFamily': 'monospace'}),
+            html.Td(f"{score_data['Comfort Violations']:.0f}", style={'padding': '12px', 'textAlign': 'center'}),
+            html.Td(f"${score_data['Total Cost']:.2f}", style={'padding': '12px', 'textAlign': 'center'}),
+            html.Td(f"{score_data['Total Emissions']:.2f} kg", style={'padding': '12px', 'textAlign': 'center'}),
+            html.Td(f"{score_data['Total Energy']:.2f} kWh", style={'padding': '12px', 'textAlign': 'center'}),
+        ], style=row_style))
+
+    ranking_table = html.Table([
+        html.Thead(html.Tr([
+            html.Th('Rank', style={'backgroundColor': '#667eea', 'color': 'white', 'padding': '12px', 'textAlign': 'center'}),
+            html.Th('Configuration', style={'backgroundColor': '#667eea', 'color': 'white', 'padding': '12px'}),
+            html.Th('Composite Score', style={'backgroundColor': '#667eea', 'color': 'white', 'padding': '12px', 'textAlign': 'center'}),
+            html.Th('Comfort Violations', style={'backgroundColor': '#667eea', 'color': 'white', 'padding': '12px', 'textAlign': 'center'}),
+            html.Th('Total Cost', style={'backgroundColor': '#667eea', 'color': 'white', 'padding': '12px', 'textAlign': 'center'}),
+            html.Th('Total Emissions', style={'backgroundColor': '#667eea', 'color': 'white', 'padding': '12px', 'textAlign': 'center'}),
+            html.Th('Total Energy', style={'backgroundColor': '#667eea', 'color': 'white', 'padding': '12px', 'textAlign': 'center'}),
+        ])),
+        html.Tbody(table_rows)
+    ], style={
+        'width': '100%',
+        'borderCollapse': 'collapse',
+        'boxShadow': '0 2px 8px rgba(0,0,0,0.1)',
+        'borderRadius': '8px',
+        'overflow': 'hidden'
+    })
+
+    # Create bar chart for composite scores
+    fig_composite = go.Figure()
+
+    colors_list = ['#27ae60' if i == 0 else '#667eea' for i in range(len(composite_scores))]
+
+    fig_composite.add_trace(go.Bar(
+        x=[s['Configuration'] for s in composite_scores],
+        y=[s['Composite Score'] for s in composite_scores],
+        marker=dict(color=colors_list),
+        text=[f"{s['Composite Score']:.4f}" for s in composite_scores],
+        textposition='outside'
+    ))
+
+    fig_composite.update_layout(
+        title=dict(
+            text=f"Composite Score Ranking<br><sub>Weights: Comfort={weights['comfort_violations']:.1%}, Cost={weights['cost']:.1%}, Emissions={weights['emissions']:.1%}</sub>",
+            font=dict(size=16, color='#2c3e50')
+        ),
+        xaxis_title="Configuration",
+        yaxis_title="Composite Score (Lower is Better)",
+        template='plotly_white',
+        height=400,
+        showlegend=False
+    )
+
+    # Winner announcement
+    winner = composite_scores[0]
+    winner_box = html.Div([
+        html.H3([
+            html.Span("🏆 ", style={'fontSize': '32px'}),
+            "Best Configuration"
+        ], style={'color': '#27ae60', 'marginBottom': '10px'}),
+        html.H4(winner['Configuration'], style={'color': '#2c3e50', 'marginBottom': '15px'}),
+        html.P([
+            html.Strong("Composite Score: "),
+            f"{winner['Composite Score']:.4f}"
+        ], style={'fontSize': '16px', 'marginBottom': '10px'}),
+        html.P([
+            "This configuration achieves the best balance between comfort, cost, and emissions ",
+            "based on your custom weights."
+        ], style={'color': '#7f8c8d', 'lineHeight': '1.6'})
+    ], style={
+        'backgroundColor': '#e8f8f5',
+        'padding': '25px',
+        'borderRadius': '10px',
+        'border': '3px solid #27ae60',
+        'marginBottom': '30px',
+        'textAlign': 'center'
+    })
+
+    return html.Div([
+        winner_box,
+        html.Div([
+            dcc.Graph(figure=fig_composite, config={'displayModeBar': True, 'displaylogo': False})
+        ], style={'marginBottom': '30px'}),
+        html.H4("📊 Detailed Rankings", style={'marginTop': '30px', 'marginBottom': '15px', 'color': '#2c3e50'}),
+        ranking_table,
+        html.P([
+            html.Strong("💡 Note: "),
+            "The composite score is calculated by normalizing each metric (comfort violations, cost, emissions) to a 0-1 scale, ",
+            "then taking a weighted average based on your custom weights. Lower scores indicate better overall performance."
+        ], style={
+            'marginTop': '20px',
+            'padding': '15px',
+            'backgroundColor': '#e8f4f8',
+            'borderRadius': '5px',
+            'fontSize': '13px',
+            'color': '#2c3e50',
+            'lineHeight': '1.6',
+            'border': '1px solid #bee5eb'
+        })
+    ])
+
 
 if __name__ == '__main__':
     print("=" * 80)
@@ -2628,3 +4550,4 @@ if __name__ == '__main__':
     print("=" * 80)
 
     app.run(debug=True, port=8050)
+

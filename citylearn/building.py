@@ -542,14 +542,14 @@ class Building(Environment):
     def energy_from_heating_device_to_heating_storage(self) -> np.ndarray:
         """Energy supply from `heating_device` to `heating_storage` time series, in [kWh]."""
 
-        return self.heating_storage.energy_balance.clip(min=0)[:self.time_step + 1]
+        return self.__energy_from_heating_device_to_heating_storage[:self.time_step + 1]
 
 
     @property
     def energy_from_heating_fuel_device_to_heating_storage(self) -> np.ndarray:
         """Energy supply from `heating_fuel_device` to `heating_storage` time series, in [kWh]."""
 
-        return self.heating_storage.energy_balance.clip(min=0)[:self.time_step + 1]
+        return self.__energy_from_heating_fuel_device_to_heating_storage[:self.time_step + 1]
 
 
     @property
@@ -1466,7 +1466,7 @@ class Building(Environment):
         # )
 
         self.___demand_limit_check('heating', demand, max_device_output + max_fuel_device_output)
-        residual_demand_after_storage = max(demand - storage_output, 0.0)
+        residual_demand_after_storage = max(demand + storage_output, 0.0)
         device_output = min(residual_demand_after_storage, max_device_output)
         self.__energy_from_heating_device[self.time_step] = device_output
 
@@ -1475,7 +1475,7 @@ class Building(Environment):
         self.___electricity_consumption_polarity_check('heating', device_output, electricity_consumption)
         self.heating_device.update_electricity_consumption(max(0.0, electricity_consumption))
 
-        residual_demand_after_electric = max(demand - storage_output - device_output, 0.0)
+        residual_demand_after_electric = max(demand + storage_output - device_output, 0.0)
         fuel_device_output = min(residual_demand_after_electric, max_fuel_device_output)
         self.__energy_from_heating_fuel_device[self.time_step] = fuel_device_output
 
@@ -1515,19 +1515,36 @@ class Building(Environment):
                                                                          max_electric_power=max_electric_power) \
                 if isinstance(self.heating_device, HeatPump) else self.heating_device.get_max_output_power(
                 max_electric_power=max_electric_power)
-
-            # Use heating_device first
-            energy_from_electric = min(max_device_output, energy)
-            remaining_energy = energy - energy_from_electric
-
             # Use heating_fuel_device only for remaining energy
             max_fuel_device_output = self.heating_fuel_device.get_max_output_power(max_fuel_power=None)
-            energy_from_fuel = min(max_fuel_device_output, remaining_energy)
 
-            total_charged_energy = energy_from_electric + energy_from_fuel
+            # Calculate cost per kWh for each device
+            elec_price = self.pricing.electricity_pricing[self.time_step]
+            fuel_price = self.pricing.fuel_pricing[self.time_step]
+
+            elec_cop = self.heating_device.get_cop(temperature, heating=True) \
+                if isinstance(self.heating_device, HeatPump) else self.heating_device.efficiency
+            fuel_efficiency = self.heating_fuel_device.efficiency
+
+            elec_cost_per_kwh = elec_price / elec_cop if elec_cop > 0 else np.inf
+            fuel_cost_per_kwh = fuel_price / fuel_efficiency if fuel_efficiency > 0 else np.inf
+
+            # Use cheaper source first
+            if elec_cost_per_kwh < fuel_cost_per_kwh:
+                energy_from_electric = min(max_device_output, energy)
+                energy_from_fuel = min(max_fuel_device_output, energy - energy_from_electric)
+            else:
+                energy_from_fuel = min(max_fuel_device_output, energy)
+                energy_from_electric = min(max_device_output, energy - energy_from_fuel)
 
             # Charge storage
-            self.heating_storage.charge(total_charged_energy)
+            total_energy = energy_from_electric + energy_from_fuel
+
+            self.heating_storage.charge(total_energy)
+
+            # Track energy to storage from each source
+            self.__energy_from_heating_device_to_heating_storage[self.time_step] = energy_from_electric
+            self.__energy_from_heating_fuel_device_to_heating_storage[self.time_step] = energy_from_fuel
 
             # Update consumptions based on actual contribution
             electricity_consumption = self.heating_device.get_input_power(energy_from_electric, temperature, heating=True) \
@@ -1543,9 +1560,10 @@ class Building(Environment):
             energy = max(-demand, energy)
             self.heating_storage.charge(energy)
 
-            # No consumption during discharge
-            self.heating_device.update_electricity_consumption(0.0)
-            self.heating_fuel_device.update_fuel_consumption(0.0)
+            # No energy to storage during discharge
+            self.__energy_from_heating_device_to_heating_storage[self.time_step] = 0.0
+            self.__energy_from_heating_fuel_device_to_heating_storage[self.time_step] = 0.0
+
 
 
     def update_energy_from_dhw_device(self):
@@ -2409,6 +2427,9 @@ class Building(Environment):
         self.__energy_from_heating_fuel_device = self.energy_simulation.heating_demand.copy()
         self.__energy_from_dhw_device = self.energy_simulation.dhw_demand.copy()
         self.__energy_to_non_shiftable_load = self.energy_simulation.non_shiftable_load.copy()
+        # Track energy to heating storage from different sources
+        self.__energy_from_heating_device_to_heating_storage = np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
+        self.__energy_from_heating_fuel_device_to_heating_storage = np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
         self.__net_electricity_consumption = np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
         self.__net_electricity_consumption_emission = np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
         self.__net_electricity_consumption_cost = np.zeros(self.episode_tracker.episode_time_steps, dtype='float32')
@@ -2494,10 +2515,10 @@ class Building(Environment):
                               self.heating_storage.energy_balance[self.time_step])
 
             heating_device_demand = self.__energy_from_heating_device[self.time_step] + \
-                                     self.heating_storage.energy_balance[self.time_step]/2
+                                    self.__energy_from_heating_device_to_heating_storage[self.time_step]
 
             heating_fuel_device_demand = self.__energy_from_heating_fuel_device[self.time_step] + \
-                                            self.heating_storage.energy_balance[self.time_step]/2
+                                            self.__energy_from_heating_device_to_heating_storage[self.time_step]
 
             if isinstance(self.heating_device, HeatPump):
                 heating_electricity_consumption = self.heating_device.get_input_power(heating_device_demand, temperature,

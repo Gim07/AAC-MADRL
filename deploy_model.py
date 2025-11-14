@@ -11,7 +11,7 @@ from citylearn.citylearn import CityLearnEnv
 from citylearn.agents.aac_madrl import AAC_MADRL
 from citylearn.agents.sac import SAC
 from citylearn.agents.marlisa import MARLISA
-from citylearn.agents.rbc import PITemperatureController as RBC
+from citylearn.agents.rbc import PIController as RBC
 
 
 from stable_baselines3 import SAC as SAC_CENTRALIZED
@@ -166,6 +166,8 @@ def run_model_and_save_obs(
     lr: float,
     beta: float,
     gamma: float,
+    kp: float = 0.2,
+    ki: float = 0.05,
     sim_start: Optional[int] = None,
     sim_end: Optional[int] = None,
     aac_classes: Optional[dict] = None,
@@ -248,7 +250,7 @@ def run_model_and_save_obs(
         elif model_type == "MARLISA":
             model = MARLISA(env, lr=lr)
         elif model_type == "RBC":
-            model = RBC(env)
+            model = RBC(env, kp=kp, ki=ki)
         else:
             raise ValueError(f"Invalid model type: {model_type}")
 
@@ -266,7 +268,7 @@ def run_model_and_save_obs(
 
     # Dove salvare obs
     algo_dir = model_type.lower()
-    obs_dir = (dataset_root / "obs" / algo_dir) if model_type == "RBC" \
+    obs_dir = (dataset_root / "obs" / algo_dir / f"kp={kp}_ki={ki}") if model_type == "RBC" \
               else (dataset_root / "obs" / algo_dir / f"beta={beta}_gamma={gamma}" / f"lr={lr}")
     ensure_dir(obs_dir)
 
@@ -399,6 +401,11 @@ def run_model_and_save_obs(
             "net fuel cost": b.net_fuel_consumption_cost,
             "net fuel emission": b.net_fuel_consumption_emission,
 
+            "electricity price": b.pricing.electricity_pricing,
+            "fuel price": b.pricing.fuel_pricing,
+            "electricity carbon intensity": b.carbon_intensity.carbon_intensity,
+            "fuel carbon intensity": b.net_fuel_consumption_emission / np.maximum(b.net_fuel_consumption, 1e-6),
+
             "positive net electricity consumption": pos_nec_b,
             "negative net electricity consumption": neg_nec_b,
             "net electricity consumption without storage": b.net_electricity_consumption_without_storage,
@@ -441,6 +448,8 @@ def parse_args():
     )
     p.add_argument("--model-type", choices=["AAC_MADRL", "MARLISA", "SAC", "SAC_CENTRALIZED", "RBC"], required=True)
     p.add_argument("--lr", type=float, required=True, help="Learning rate usato in training.")
+    p.add_argument("--kp", type=float, default=None, help="Kp per la reward (e per la cartella dei pesi).")
+    p.add_argument("--ki", type=float, default=None, help="Ki per la reward (e per la cartella dei pesi).")
     p.add_argument("--beta", type=float, default=None, help="Beta per la reward (e per la cartella dei pesi).")
     p.add_argument("--gamma", type=float, default=None, help="Gamma per la reward (e per la cartella dei pesi).")
     p.add_argument("--sim-start", type=int, default=None, help="simulation_start_time_step.")
@@ -454,6 +463,8 @@ if __name__ == "__main__":
         dataset_anchor=args.dataset_anchor,
         model_type=args.model_type,
         lr=args.lr,
+        kp=args.kp if args.kp is not None else 0.2,
+        ki=args.ki if args.ki is not None else 0.05,
         beta=args.beta if args.beta is not None else 1.0,
         gamma=args.gamma if args.gamma is not None else 1.0,
         sim_start=args.sim_start,

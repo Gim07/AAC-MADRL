@@ -1277,11 +1277,8 @@ class FuelCombustionDevice(Device):
             'nominal_power': self.nominal_power,
         }
 
-    def update_fuel_consumption(self, fuel_consumption: float, enforce_polarity: bool = None):
+    def update_fuel_consumption(self, fuel_consumption: float):
         r"""Updates `fuel_consumption` at the current `time_step`."""
-        enforce_polarity = True if enforce_polarity is None else enforce_polarity
-        assert not enforce_polarity or fuel_consumption >= 0.0, \
-            f'fuel_consumption must be >= 0 but value: {fuel_consumption} was provided.'
 
         # Ensure the array exists before trying to update it
         if hasattr(self, '_FuelCombustionDevice__fuel_consumption'):
