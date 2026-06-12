@@ -1823,6 +1823,8 @@ def render_kpis_tab(dataset, selected_buildings, selected_configs, season,
             'Fuel Variance': float(fuel_variance),
             'Fuel Cost': float(fuel_cost),
             'Fuel Emissions': float(fuel_emissions),
+            # Total Cost (sum of electricity and fuel costs)
+            'Total Cost': float(elec_cost) + float(fuel_cost),
         }
 
         all_kpis.append(final_kpis)
@@ -1866,6 +1868,15 @@ def render_kpis_tab(dataset, selected_buildings, selected_configs, season,
             ],
             'icon': '🔥',
             'color': '#e67e22'
+        },
+        'Total Costs': {
+            'metrics': [
+                'Electricity Cost',
+                'Fuel Cost',
+                'Total Cost'
+            ],
+            'icon': '💰',
+            'color': '#27ae60'
         }
     }
 
@@ -2170,6 +2181,8 @@ def render_comparison_tab(dataset, selected_buildings, selected_configs, season,
         district_total_energy = 0
         district_elec_cost = 0
         district_elec_emissions = 0
+        district_fuel_cost = 0
+        district_fuel_emissions = 0
         total_timesteps = 0
 
         for building_id in selected_buildings:
@@ -2211,9 +2224,29 @@ def render_comparison_tab(dataset, selected_buildings, selected_configs, season,
                                                                  errors='coerce').fillna(
                             0).clip(lower=0).sum()
 
+                    # Fuel cost
+                    fuel_cols = {'cost': ['net fuel cost', 'net_fuel_cost', 'fuel_cost']}
+                    col_fuel_cost = find_column(df_filtered, fuel_cols['cost'])
+                    if col_fuel_cost:
+                        district_fuel_cost += pd.to_numeric(df_filtered[col_fuel_cost],
+                                                            errors='coerce').fillna(0).clip(
+                            lower=0).sum()
+
+                    # Fuel emissions
+                    fuel_emis_cols = {'emis': ['net fuel emission', 'net_fuel_emission', 'fuel_emission']}
+                    col_fuel_emis = find_column(df_filtered, fuel_emis_cols['emis'])
+                    if col_fuel_emis:
+                        district_fuel_emissions += pd.to_numeric(df_filtered[col_fuel_emis],
+                                                                 errors='coerce').fillna(
+                            0).clip(lower=0).sum()
+
                     total_timesteps += len(df_filtered)
 
         violation_rate = (district_comfort_violations / total_timesteps * 100) if total_timesteps > 0 else 0
+
+        # Calculate total cost and total emissions
+        total_cost = district_elec_cost + district_fuel_cost
+        total_emissions = district_elec_emissions + district_fuel_emissions
 
         scatter_data.append({
             'Configuration': full_config_name,
@@ -2221,7 +2254,11 @@ def render_comparison_tab(dataset, selected_buildings, selected_configs, season,
             'Total Energy': district_total_energy,
             'Violation Rate': violation_rate,
             'Electricity Cost': district_elec_cost,
-            'Electricity Emissions': district_elec_emissions
+            'Electricity Emissions': district_elec_emissions,
+            'Fuel Cost': district_fuel_cost,
+            'Fuel Emissions': district_fuel_emissions,
+            'Total Cost': total_cost,
+            'Total Emissions': total_emissions
         })
 
     if not scatter_data:
@@ -2256,19 +2293,19 @@ def render_comparison_tab(dataset, selected_buildings, selected_configs, season,
         title=dict(font=dict(size=16, color='#2c3e50'))
     )
 
-    # Scatter plot 2: Cost vs Emissions
-    if scatter_df['Electricity Cost'].sum() > 0 and scatter_df['Electricity Emissions'].sum() > 0:
+    # Scatter plot 2: Total Cost vs Total Emissions
+    if scatter_df['Total Cost'].sum() > 0 and scatter_df['Total Emissions'].sum() > 0:
         fig2 = px.scatter(
             scatter_df,
-            x='Electricity Cost',
-            y='Electricity Emissions',
+            x='Total Cost',
+            y='Total Emissions',
             text='Configuration',
             size='Total Energy',
             color='Configuration',
-            title=f'Cost-Emissions Trade-off (District Level)',
+            title=f'Total Cost-Emissions Trade-off (District Level - Multi-Energy)',
             labels={
-                'Electricity Cost': 'Total Electricity Cost ($)',
-                'Electricity Emissions': 'Total Electricity Emissions (kg CO₂)'
+                'Total Cost': 'Total Energy Cost (Electricity + Fuel) ($)',
+                'Total Emissions': 'Total Emissions (Electricity + Fuel) (kg CO₂)'
             },
             template='plotly_white',
             height=500,
@@ -2297,14 +2334,14 @@ def render_comparison_tab(dataset, selected_buildings, selected_configs, season,
                 'values': scatter_df['Comfort Violations']
             },
             'Total Cost ($)': {
-                'min': scatter_df['Electricity Cost'].min(),
-                'max': scatter_df['Electricity Cost'].max(),
-                'values': scatter_df['Electricity Cost']
+                'min': scatter_df['Total Cost'].min(),
+                'max': scatter_df['Total Cost'].max(),
+                'values': scatter_df['Total Cost']
             },
             'Total Emissions (kg CO₂)': {
-                'min': scatter_df['Electricity Emissions'].min(),
-                'max': scatter_df['Electricity Emissions'].max(),
-                'values': scatter_df['Electricity Emissions']
+                'min': scatter_df['Total Emissions'].min(),
+                'max': scatter_df['Total Emissions'].max(),
+                'values': scatter_df['Total Emissions']
             }
         }
 
@@ -2317,11 +2354,11 @@ def render_comparison_tab(dataset, selected_buildings, selected_configs, season,
             # Total Violations
             total_violations = row['Comfort Violations']
 
-            # Total Cost
-            total_cost = row['Electricity Cost']
+            # Total Cost (electricity + fuel)
+            total_cost = row['Total Cost']
 
-            # Total Emissions
-            total_emissions = row['Electricity Emissions']
+            # Total Emissions (electricity + fuel)
+            total_emissions = row['Total Emissions']
 
             # Normalize to 0-100 scale: DIRECT (higher value = higher on chart)
             # Min value → 0 (center), Max value → 100 (outer edge)
