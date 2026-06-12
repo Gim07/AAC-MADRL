@@ -1,0 +1,17 @@
+cost_function,District
+Import,8870.5172331
+Variance,20.01209773678915
+Daily Peak Average,21.727475903225812
+Avg Num Comfort Violations,286.8
+Avg Comfort Violation Above (°C),0.9309797725387263
+Avg Comfort Violation Below (°C),1.0542372790807422
+Avg Num Comfort Violations Above,75.5
+Avg Num Comfort Violations Below,211.3
+Fuel Import,14400.7413515
+Fuel Variance,80.49547489290889
+Fuel Cost,1992.62769379
+Fuel Emissions,3013.1860862999997
+Electricity Cost,2693.33287154
+Electricity Emissions,5341.6101583
+Electricity Import,8745.75322265
+Electricity Variance,21.06118289227765

@@ -8,8 +8,36 @@
 
 - **AAC-MADRL** — *Actor-Attention-Critic Multi-Agent DRL*: Attention-based multi-agent actor–critic method for district-scale DSM
 - **SAC** — *Soft Actor-Critic*: State-of-the-art model-free deep RL algorithm
-- **MARLISA** — *Multi-Agent RL with Iterative Sequential Action selection*
-- **RBC (Rule-Based Controller)** — *PI Controller*: Traditional baseline using proportional-integral control
+- **Stable Baselines 3 SAC** — *SAC controller from stable-baseliunes3 library, tested only fo the centralized case*
+- **RBC** — *PI Controller*: Integration of a new baseline proportional-integral control for temperature regulation
+
+### What's New in MESLearn?
+
+MESLearn extends the original AAC-MADRL framework (published in Applied Energy, 2025) with **multi-energy system capabilities**:
+
+#### **Key Enhancements**:
+
+1. **🔥 4th Control Action: `heating_fuel_device`**
+   - Adds gas boiler control alongside electric heating
+   - Expands action space from 21³ to 21⁴ per building
+   - Enables fuel-electric switching strategies
+
+2. **📊 Fuel Pricing Signals**
+   - Real-time and 3-hour ahead fuel price forecasts
+   - Enables cost-aware multi-energy decisions
+   - Schema enhancement: `fuel_pricing`, `fuel_pricing_predicted_1/2/3`
+
+3. **⚖️ Enhanced Reward Functions**
+   - Multi-objective optimization: comfort + cost + emissions
+   - Dual-energy cost tracking: electricity + fuel
+   - District-level coordination with fuel consideration
+
+4. **📈 Comprehensive Tracking**
+   - Separate electricity and fuel consumption metrics
+   - Independent cost and emission accounting
+   - Multi-energy KPI evaluation
+
+**Note**: Features like `hvac_mode`, `comfort_band`, and `carbon_intensity` were already available in CityLearn 2.3.1. The core MESLearn contribution is adding **fuel pricing signals** and the **heating_fuel_device control action** to enable multi-energy optimization.
 
 ---
 
@@ -28,7 +56,7 @@ MESLearn introduces comprehensive support for **multi-energy systems** with two 
 
 #### **Fuel Network (Natural Gas)**
 - Natural gas supply for heating
-- Fuel-based heating devices (e.g., gas boilers, furnaces)
+- Fuel-based heating devices (gas boilers)
 - Independent fuel pricing structure
 - Separate carbon emission factors
 - Complementary operation with electric systems
@@ -41,9 +69,12 @@ MESLearn introduces comprehensive support for **multi-energy systems** with two 
 
 ### 2. **Enhanced Schema Configuration** 📋
 
-The schema has been significantly expanded to support multi-energy systems:
+The schema has been expanded to support multi-energy systems with the addition of **heating_device** as a new action and
+of **fuel pricing signals** in the obervations section.
 
-#### **New Observations**
+#### **New Fuel Pricing Observations**
+Addition of **fuel pricing signals** to enable cost-aware control decisions between electricity and gas.
+
 ```json
 {
   "fuel_pricing": {
@@ -65,90 +96,305 @@ The schema has been significantly expanded to support multi-energy systems:
     "active": true,
     "shared_in_central_agent": true,
     "description": "3-hour ahead fuel price forecast"
-  },
-  "carbon_intensity": {
-    "active": true,
-    "shared_in_central_agent": true,
-    "description": "Grid electricity carbon emission factor (kg CO₂/kWh)"
-  },
-  "hvac_mode": {
-    "active": true,
-    "shared_in_central_agent": false,
-    "description": "HVAC operating mode: 0=off, 1=cooling, 2=heating, 3=auto"
-  },
-  "comfort_band": {
-    "active": false,
-    "shared_in_central_agent": false,
-    "description": "Acceptable temperature deviation from setpoint (°C)"
   }
 }
 ```
 
-#### **Key Schema Enhancements**
 
-| Category | Feature | Description |
-|----------|---------|-------------|
-| **Pricing** | `fuel_pricing` | Real-time natural gas pricing |
-| **Pricing** | `fuel_pricing_predicted_*` | 1-3 hour ahead fuel price forecasts |
-| **Carbon** | `carbon_intensity` | Grid electricity carbon emission factor |
-| **Energy** | `net_fuel_consumption` | Total fuel consumption tracking |
-| **Devices** | `heating_fuel_device` | Gas boiler/furnace control action |
-| **HVAC** | `hvac_mode` | 0=off, 1=cooling, 2=heating, 3=auto |
-| **Comfort** | `comfort_band` | Acceptable temperature deviation (°C) |
+#### **Schema Enhancements Summary**
+
+| Category    | Feature                    | Status    | Description                           |
+|-------------|----------------------------|-----------|---------------------------------------|
+| **Pricing** | `fuel_pricing`             | **NEW**   | Real-time natural gas pricing         |
+| **Pricing** | `fuel_pricing_predicted_*` | **NEW**   | 1-3 hour ahead fuel price forecasts   |
+| **Energy**  | `net_fuel_consumption`     | **NEW**   | Total fuel consumption tracking       |
+| **Energy**  | `heating_fuel_consumption` | **NEW**   | Heat output from gas boiler           |
+| **Energy**  | `dhw_fuel_consumption`     | **NEW**   | Heat output from gas boiler           |
+| **Devices** | `heating_fuel_device`      | **NEW**   | Gas boiler control action             |
+| **Devices** | `dhw_device`               | **NEW**  | DHW device could be also a gas boiler |
+
 
 #### **Building Device Configuration**
 Buildings now specify **dual-source heating systems**:
 - **Electric heating device**: Heat pump, electric resistance heating
-- **Fuel heating device**: Gas boiler, furnace
+- **Fuel heating device**: Gas boiler
 - **Control strategy**: Agents decide which device to activate and at what capacity
 
 ### 3. **Advanced Rule-Based Controller (RBC)** 🎛️
 
-A sophisticated **PI (Proportional-Integral) Controller** has been implemented as a robust baseline:
+A sophisticated **PI (Proportional-Integral) Controller** has been implemented as a robust baseline that demonstrates intelligent multi-energy system operation without machine learning.
+
+#### **Overview**
+
+The PI Controller (`PIController` class) is a **hierarchical control strategy** that combines:
+1. **Solar-aware energy source selection**: Automatically switches between electric and fuel heating
+2. **PI temperature control**: Precise temperature regulation using proportional-integral feedback
+3. **Intelligent storage management**: Optimizes thermal and electrical storage based on solar availability
+4. **Anti-windup mechanisms**: Prevents integral saturation for stable long-term operation
 
 #### **Control Strategy**
-The RBC uses classic feedback control theory:
+
+The RBC uses classic feedback control theory with modern enhancements:
 
 ```
 Control Signal = K_p × error(t) + K_i × ∫error(t)dt
 ```
 
 Where:
-- `error(t) = T_setpoint - T_current`
-- `K_p`: Proportional gain (immediate response)
-- `K_i`: Integral gain (eliminates steady-state error)
+- `error(t) = T_setpoint - T_current` (for heating)
+- `K_p`: Proportional gain (immediate response to current error)
+- `K_i`: Integral gain (eliminates steady-state error over time)
+
+**Key Innovation**: The same PI control signal is used for **both** heating devices (electric heat pump and gas boiler), but the controller intelligently routes it to the appropriate device based on solar availability and battery state.
+
+#### **Hierarchical Heating Decision Logic**
+
+The controller implements a **solar-aware hierarchical strategy** for choosing between electric and fuel heating:
+
+```python
+def _determine_heating_mode(solar_gen, electrical_storage_action):
+    """
+    Decision tree:
+    1. Solar available (solar_gen > 0.05 kWh) → Use electrical heating
+       Rationale: Leverage free solar energy
+    
+    2. Battery discharging (action < 0) → Use electrical heating
+       Rationale: Consume stored solar energy
+    
+    3. Battery charging (action > 0) → Use fuel heating
+       Rationale: Preserve electrical energy for storage, use cheaper fuel
+    
+    Returns: 'electrical' or 'fuel'
+    """
+    if electrical_storage_action < 0 or solar_gen > 0.05:
+        return 'electrical'  # Use heat pump
+    else:
+        return 'fuel'  # Use gas boiler
+```
+
+**Benefits of this approach**:
+- ✅ Maximizes solar self-consumption
+- ✅ Prioritizes efficient heat pump when renewable energy available
+- ✅ Falls back to fuel during grid charging periods (cost optimization)
+- ✅ Simple, interpretable rules that perform well
 
 #### **Features**
-- **Adaptive control**: Responds to temperature deviations from setpoint
-- **Separate storage control**: Independent management of heating/cooling/DHW storage
-- **Fuel device activation**: Rule-based logic for gas boiler operation
-- **Anti-windup mechanisms**: Prevents integral saturation
-- **Baseline performance**: Provides benchmark for learning-based methods
 
-#### **Storage Charging Logic**
+- **Adaptive temperature control**: Responds to deviations from setpoint with proportional urgency
+- **Separate storage control**: Independent management of heating/cooling/DHW/electrical storage
+- **Deadband logic**: Avoids unnecessary cycling (±0.5-1.0°C around setpoint)
+- **Anti-windup mechanisms**: Limits integral accumulation to prevent overshoot
+- **Stateful operation**: Maintains integral error history across time steps
+- **Baseline performance**: Provides interpretable benchmark for learning-based methods
+
+#### **Temperature Control (PI Algorithm)**
+
 ```python
-# Heating storage
-if T_indoor < T_setpoint - band:
-    charge_heating_storage = K_p × (T_setpoint - T_indoor) + K_i × ∫error dt
+def _calculate_pi_action(error, integral_key):
+    """
+    Proportional-Integral control for precise temperature regulation.
     
-# Cooling storage  
-if T_indoor > T_setpoint + band:
-    charge_cooling_storage = K_p × (T_indoor - T_setpoint) + K_i × ∫error dt
+    Parameters:
+    -----------
+    error: float
+        Temperature error (setpoint - current)
+        Positive = need heating, Negative = too warm
     
-# DHW storage
-charge_dhw = constant_level  # Maintain hot water availability
+    Returns:
+    --------
+    action: float (0.0-1.0)
+        Device power setpoint
+    
+    Logic:
+    ------
+    1. If |error| ≤ deadband (e.g., 0.5°C):
+       - Reset integral term to 0
+       - Return action = 0.0 (no heating/cooling needed)
+    
+    2. If error > deadband:
+       - P-term = K_p × error (immediate response)
+       - I-term = K_i × Σ(error) (accumulated error correction)
+       - Apply anti-windup: limit integral to ±10.0
+       - Combine: action = P-term + I-term
+       - Clamp to [min_power, max_power] range
+    
+    3. If error < -deadband:
+       - Return action = 0.0 (setpoint exceeded)
+       - Continue accumulating integral (for cooling logic)
+    """
+    if abs(error) <= temp_deadband:
+        integral_errors[integral_key] = 0.0
+        return 0.0
+    
+    if error > 0.0:
+        # Need heating/cooling
+        p_term = K_p × error
+        integral_errors[integral_key] += error
+        integral_errors[integral_key] = clamp(integral_errors[integral_key], 
+                                               -integral_limit, +integral_limit)
+        i_term = K_i × integral_errors[integral_key]
+        
+        action = p_term + i_term
+        return clamp(action, min_power, max_power)
+    else:
+        return 0.0
 ```
 
-#### **Fuel Device Activation**
-```python
-# Activate gas boiler when:
-# 1. Temperature below setpoint
-# 2. Electric heating insufficient
-# 3. Fuel price favorable vs electricity
+**Example**: 
+- Current temp: 18°C, Setpoint: 21°C, Deadband: 0.5°C
+- Error = 21 - 18 = 3°C (outside deadband)
+- P-term = 0.2 × 3 = 0.6
+- I-term = 0.01 × 15 = 0.15 (assuming accumulated error of 15)
+- Action = 0.6 + 0.15 = 0.75 (75% heating power)
 
-if (T_indoor < T_setpoint - threshold) and (fuel_price < elec_price × COP):
-    activate_fuel_device()
+#### **Thermal Storage Management**
+
+The controller uses **error-proportional discharge** and **solar-based charging**:
+
+```python
+def _calculate_storage_action(storage_soc, heating_error):
+    """
+    Smart thermal storage control with hysteresis.
+    
+    Charging Logic:
+    ---------------
+    Conditions:
+    - heating_error < 0.01 (no heating demand)
+    - storage_soc < (1.0 - charge_threshold) (not full, e.g., < 90%)
+    
+    Action: Charge at maximum rate (1.0)
+    Rationale: Store excess solar when not needed for heating
+    
+    Discharging Logic:
+    ------------------
+    Conditions:
+    - heating_error > temp_deadband (need heat, e.g., error > 0.5°C)
+    - storage_soc > discharge_threshold (have charge, e.g., > 30%)
+    
+    Action: Discharge proportional to error
+    - discharge = K_p × (error - deadband)
+    - Capped by max_discharge_rate (e.g., 0.10)
+    - Tapered by available SOC to prevent over-discharge
+    
+    Rationale: Use stored energy when heating needed, proportional to urgency
+    
+    Idle:
+    -----
+    Otherwise: action = 0.0 (hold current state)
+    """
+    # Charging
+    if heating_error < 0.01 and storage_soc < 0.9:
+        return 1.0  # Full charge
+    
+    # Discharging (proportional to error)
+    if heating_error > temp_deadband and storage_soc > 0.3:
+        discharge = K_p × (heating_error - temp_deadband)
+        discharge = min(discharge, max_discharge_rate)
+        
+        # Taper by available SOC
+        available_factor = (storage_soc - 0.3) / (1.0 - 0.3)
+        discharge = min(discharge, max_discharge_rate × available_factor)
+        
+        return -discharge  # Negative = discharge
+    
+    # Idle
+    return 0.0
 ```
+
+**Key Features**:
+- **Proportional discharge**: More discharge when error is larger (emergency heating)
+- **SOC tapering**: Discharge rate decreases as storage depletes (prevents deep discharge)
+- **Hysteresis**: Separate thresholds for charging (90%) and discharging (30%) prevent oscillation
+
+#### **Electrical Battery Control**
+
+Simple time-of-use strategy (can be customized with `battery_action_map`):
+
+```python
+def battery_control(hour):
+    """
+    Default battery strategy:
+    - 9:00-21:00 (day): Discharge at -0.08 (support daytime loads)
+    - 1:00-8:00, 22:00-24:00 (night): Charge at +0.091 (store cheap/solar energy)
+    """
+    if 9 <= hour <= 21:
+        return -0.08  # Discharge during day
+    elif (1 <= hour <= 8) or (22 <= hour <= 24):
+        return 0.091  # Charge during night
+    else:
+        return 0.0
+```
+
+**Integration with heating mode**:
+- When battery charging → Use fuel heating (preserve electrical energy)
+- When battery discharging → Use electrical heating (consume stored solar)
+
+#### **Complete Control Flow**
+
+```
+For each time step:
+
+1. Read Observations
+   ├─ Indoor temperature
+   ├─ Heating/cooling setpoints
+   ├─ Solar generation
+   ├─ Storage SOC (thermal, electrical)
+   └─ Hour of day
+
+2. Calculate PI Control Signal (ONCE)
+   ├─ heating_error = T_setpoint - T_indoor
+   ├─ heating_action = PI_control(heating_error)
+   └─ [Same signal used for both electric and fuel devices]
+
+3. Determine Heating Mode
+   ├─ Get battery action (charge/discharge)
+   ├─ Check solar availability
+   └─ mode = 'electrical' or 'fuel'
+
+4. Calculate Storage Actions
+   ├─ Electrical battery: Time-of-use schedule
+   ├─ Thermal storage: Error-proportional + solar-based
+   └─ Cooling storage: Simple schedule
+
+5. Route Actions to Devices
+   ├─ IF mode == 'electrical':
+   │  ├─ heating_device = heating_action
+   │  └─ heating_fuel_device = 0.0
+   │
+   └─ IF mode == 'fuel':
+      ├─ heating_device = 0.0
+      └─ heating_fuel_device = heating_action
+
+6. Apply Actions to Environment
+   └─ Return all device actions
+
+Key: The SAME PI control signal is calculated once and routed
+     to the appropriate device based on solar/battery state.
+     This ensures consistent temperature control regardless
+     of which energy source is active.
+```
+
+#### **Tunable Parameters**
+
+| Parameter | Default | Range | Purpose |
+|-----------|---------|-------|---------|
+| `kp` | 0.2 | 0.1-0.5 | Proportional gain (responsiveness) |
+| `ki` | 0.01 | 0.001-0.05 | Integral gain (steady-state accuracy) |
+| `temp_deadband` | 1.0°C | 0.5-2.0°C | Temperature tolerance before action |
+| `integral_limit` | 10.0 | 5.0-20.0 | Anti-windup threshold |
+| `storage_charge_threshold` | 0.1 | 0.0-0.3 | SOC margin for charging (90% = 1.0-0.1) |
+| `storage_discharge_threshold` | 0.3 | 0.2-0.5 | Minimum SOC before discharge stops |
+| `storage_charge_rate` | 0.15 | 0.1-0.3 | Maximum charge power |
+| `storage_discharge_rate` | 0.10 | 0.05-0.2 | Maximum discharge power |
+
+#### **Advantages as Baseline**
+
+✅ **Interpretable**: Every decision has clear logic  
+✅ **No training required**: Works immediately out-of-the-box  
+✅ **Stable**: Proven control theory with anti-windup  
+✅ **Solar-aware**: Automatically optimizes for renewable energy  
+✅ **Multi-energy**: Demonstrates fuel-electric switching  
+✅ **Benchmark**: Provides performance target for RL methods  
 
 ### 4. **Multi-Objective Custom Reward Functions** 🎯
 
@@ -384,11 +630,22 @@ The AAC-MADRL framework is described in:
 > *A scalable demand-side energy management control strategy for large residential districts based on an attention-driven multi-agent DRL approach*, **Applied Energy**.  
 > [https://doi.org/10.1016/j.apenergy.2025.125993]
 
-**Note**: The paper's case study was conducted on an earlier version of CityLearn without building temperature dynamics. This repository uses the updated CityLearn API with **building dynamics and multi-energy system support**.
+**Note**: The paper's case study was conducted on an earlier version of CityLearn without building temperature dynamics and with **3 control actions per building** (DHW storage, electrical storage, heating/cooling device). This repository uses the updated CityLearn API with **building dynamics** and adds a **4th control action (`heating_fuel_device`)** to enable multi-energy system optimization.
+
+### Key Enhancement: From 3 to 4 Control Actions
+
+AAC-MADRL is an **attention-driven, discrete-action, multi-agent actor–critic algorithm** for district-scale energy control, now extended to support multi-energy systems.
+
+**Critical Update**: The action space has been expanded from the original 3 to 4 devices per building:
+
+| Version | Devices Controlled | Action Combinations | Capability |
+|---------|-------------------|---------------------|------------|
+| **Original Paper** | 3 devices (DHW, Electrical, Heating/Cooling) | 21³ = 9,261 | Electric-only control |
+| **MESLearn** | 4 devices (+**Heating Fuel Device**) | 21⁴ = 194,481 | **Multi-energy control** |
+
+This **21× expansion** in action space enables agents to learn fuel-electric switching strategies, fundamentally transforming the problem from single-energy to multi-energy optimization.
 
 ### Key Characteristics
-
-AAC-MADRL is an **attention-driven, discrete-action, multi-agent actor–critic algorithm** for district-scale energy control.
 
 - **Paradigm**: **Centralized Training with Decentralized Execution (CTDE)**
   - Training: Centralized critic with full observability
@@ -396,14 +653,15 @@ AAC-MADRL is an **attention-driven, discrete-action, multi-agent actor–critic 
 
 - **Actors (πᵢ)**: One per building
   - Discrete probability distribution over actions
-  - 4 devices per building: DHW storage, electrical storage, heating device, **fuel device**
+  - **4 devices per building**: DHW storage, electrical storage, heating device, **heating fuel device** ← **NEW**
   - 21 discretized action classes per device
-  - Total action space: 21⁴ = 194,481 combinations per building
+  - Total action space per building: 21⁴ = 194,481 combinations
 
 - **Centralized Critic (Q)**: Single critic for all agents
   - Evaluates joint state–action tuples: Q(s, a₁, …, aₙ)
   - **Multi-head attention mechanism**: Dynamically weights inter-agent dependencies
   - Learns which buildings' actions matter most for each agent
+  - Handles the expanded 4-action space efficiently
   - Enables scalability to large districts (tested up to 50 buildings)
 
 ### Critic Architecture
@@ -427,16 +685,20 @@ The attention mechanism learns:
 
 ## 🔧 Multi-Energy System Control Actions
 
+### Critical Enhancement: Heating Fuel Device Action
+
+**The most significant addition to MESLearn is the introduction of the `heating_fuel_device` control action**, which enables agents to control gas-fired heating equipment alongside electric devices. This transforms the framework from electric-only control to true multi-energy system management.
+
 ### Action Space for AAC-MADRL
 
-Each building agent controls **4 devices** with discrete action classes:
+Each building agent now controls **4 devices** (previously 3) with discrete action classes:
 
-| Device | Action Classes | Range | Description |
-|--------|---------------|-------|-------------|
-| **DHW Storage** | 21 | [-1, 1] | Hot water tank charge/discharge |
-| **Electrical Storage** | 21 | [-1, 1] | Battery charge/discharge |
-| **Heating/Cooling Device** | 21 | [-1, 1] | Heat pump / AC modulation |
-| **Heating Fuel Device** | 21 | [-1, 1] | Gas boiler operation level |
+| Device | Action Classes | Range | Description | Status |
+|--------|---------------|-------|-------------|--------|
+| **DHW Storage** | 21 | [-1, 1] | Hot water tank charge/discharge | Existing |
+| **Electrical Storage** | 21 | [-1, 1] | Battery charge/discharge | Existing |
+| **Heating/Cooling Device** | 21 | [-1, 1] | Heat pump / AC modulation | Existing |
+| **Heating Fuel Device** | 21 | [-1, 1] | **Gas boiler operation level** | **NEW** ✨ |
 
 **Action Encoding**:
 ```
@@ -444,9 +706,15 @@ Action class:  0    5    10   15   20
 Setpoint:     -1.0 -0.5  0.0  0.5  1.0
 ```
 
-- `-1.0`: Maximum discharge / off
-- `0.0`: Standby / neutral
-- `+1.0`: Maximum charge / full power
+- `-1.0`: Device off / no operation
+- `0.0`: Standby / minimal operation
+- `+1.0`: Maximum operation / full power
+
+**Key Impact**: The addition of the 4th action dimension (`heating_fuel_device`) significantly expands the action space:
+- **Previous (electric-only)**: 21³ = 9,261 action combinations per building
+- **Current (multi-energy)**: 21⁴ = 194,481 action combinations per building
+- **Challenge**: 21× larger action space requires more sophisticated exploration and learning strategies
+- **Benefit**: Enables true multi-energy optimization with fuel-electric switching
 
 **Discretization Benefits**:
 - Improved training stability (vs continuous)
@@ -463,25 +731,30 @@ Continuous action space with 4 dimensions per building:
 
 ### Multi-Energy Control Strategy
 
+**The core challenge**: With the addition of the `heating_fuel_device` action, agents must learn to make strategic decisions across a significantly larger action space (21× more combinations) while balancing multiple energy sources.
+
 The agent learns to make strategic decisions:
 
-#### 1. **Energy Source Selection**
+#### 1. **Energy Source Selection** (Enabled by heating_fuel_device)
 Choose between electric and fuel heating based on:
 
 ```python
 Decision factors:
 ├─ Current prices: elec_price vs fuel_price
-├─ Price forecasts: next 3 hours
+├─ Price forecasts: next 3 hours (fuel_pricing_predicted_*)
 ├─ Device efficiency: COP_heat_pump vs efficiency_boiler
 ├─ Carbon intensity: grid_carbon vs fuel_carbon
 ├─ Storage states: Can we use stored energy?
 └─ Demand forecast: How much heating needed?
 
-Example decision:
+Example decision with heating_fuel_device:
+# Agent sets heating_fuel_device action to control gas boiler
 if (fuel_price < elec_price / COP) and (carbon_weight < cost_weight):
-    use_fuel_device()
+    action_heating_fuel_device = 0.8  # 80% gas boiler operation
+    action_heating_device = 0.0       # Heat pump off
 else:
-    use_electric_device()
+    action_heating_fuel_device = 0.0  # Gas boiler off
+    action_heating_device = 0.6       # 60% heat pump operation
 ```
 
 #### 2. **Storage Optimization**
@@ -525,7 +798,7 @@ Objective hierarchy:
    → Enable grid services
 ```
 
-**Example Multi-Objective Decision**:
+**Example Multi-Objective Decision with heating_fuel_device**:
 ```
 Scenario: Cold winter evening
 ├─ Temperature: 18°C (setpoint: 21°C) → COMFORT PRIORITY
@@ -534,20 +807,24 @@ Scenario: Cold winter evening
 ├─ Carbon intensity: Medium (0.5 kg/kWh)
 └─ District load: Already high
 
-Decision:
-1. ✓ Use fuel device (cheap, addresses comfort)
-2. ✓ Charge heating storage from fuel (prepare for later)
-3. ✗ Don't use electric heat pump (expensive, would increase district peak)
-4. ✓ Discharge electrical battery (help with peak demand elsewhere)
+Agent Actions (4 control outputs):
+1. action_heating_fuel_device = 0.9     ← Use gas boiler at 90% (cheap, fast heating)
+2. action_heating_storage = 0.6         ← Charge heating storage from gas
+3. action_heating_device = 0.0          ← Keep heat pump off (expensive electricity)
+4. action_electrical_storage = -0.4     ← Discharge battery to help other loads
 
-Result: Comfort restored, cost minimized, district peak not worsened
+Result: 
+✓ Comfort restored quickly (gas boiler high power)
+✓ Cost minimized (cheap fuel vs expensive electricity)
+✓ District peak not worsened (no electric heating during peak)
+✓ Prepared for later (heating storage charged)
 ```
 
 ---
 
 ## 🎓 Training Examples
 
-### AAC-MADRL (Multi-Energy)
+### AAC-MADRL (Multi-Energy with 4 Actions)
 ```bash
 python train_aac_madrl.py \
   --dataset-name data/CA_20_dynamics/schema.json \
@@ -556,13 +833,15 @@ python train_aac_madrl.py \
   --dhw-storage 21 \
   --electrical-storage 21 \
   --cooling-or-heating-device 21 \
-  --heating-fuel-device 21 \
+  --heating-fuel-device 21 \              # ← NEW: 4th action dimension
   --beta 0.2 \
   --gamma 2.0 \
   --sim-start 0 \
   --sim-end 8759 \
   --wandb off
 ```
+
+**Note**: The `--heating-fuel-device 21` parameter is the key addition that enables multi-energy control. Without this parameter, the agent would only control 3 devices (electric-only mode).
 
 ### SAC (Multi-Energy)
 ```bash
@@ -733,15 +1012,25 @@ MARLISA:   lr = 3e-4   # Conservative for multi-agent
 ### Action Discretization
 
 ```python
-# Optimal discretization (from paper)
+# Optimal discretization for multi-energy systems
 DHW_storage: 21 classes
 Electrical_storage: 21 classes
 Heating_device: 21 classes
-Fuel_device: 21 classes
+Fuel_device: 21 classes  # ← NEW: Enables gas boiler control
 
-# Alternative (faster training, slightly worse performance)
+# Total action space per building: 21^4 = 194,481 combinations
+
+# Alternative (faster training, smaller action space, electric-only)
 All_devices: 11 classes
+# Only 3 devices controlled (no fuel device)
+# Total action space: 11^3 = 1,331 combinations
 ```
+
+**Impact of 4th Action Dimension**:
+- **Exploration challenge**: 194,481 vs 9,261 actions (with 21 classes) or 1,331 (with 11 classes)
+- **Learning benefit**: Can discover fuel-electric switching strategies
+- **Performance**: Empirically shown to achieve better multi-objective optimization
+- **Discretization rationale**: 21 classes provide fine-grained control while maintaining stability
 
 ---
 
